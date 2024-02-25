@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>650</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>LPP</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout_2">
+    <item>
+     <widget class="LppEditor" name="edtSourceCode">
+      <property name="font">
+       <font>
+        <family>Liberation Mono</family>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1100</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuArchivo">
+    <property name="title">
+     <string>Archivo</string>
+    </property>
+    <addaction name="actionNuevoPrg"/>
+    <addaction name="actionAbrir"/>
+    <addaction name="actionGuardar"/>
+    <addaction name="actionGuardar_como"/>
+    <addaction name="separator"/>
+    <addaction name="actionSalir"/>
+   </widget>
+   <widget class="QMenu" name="menuInsertar">
+    <property name="title">
+     <string>Insertar</string>
+    </property>
+    <addaction name="actionBloque_si_fin_si"/>
+    <addaction name="actionBloque_si_sino_fin_si"/>
+    <addaction name="actionBloque_caso_fin_caso"/>
+    <addaction name="actionBloque_para_fin_para"/>
+    <addaction name="actionBloque_mientras_fin_mientas"/>
+    <addaction name="actionBloque_repita_hasta"/>
+   </widget>
+   <widget class="QMenu" name="menuPrograma">
+    <property name="title">
+     <string>Programa</string>
+    </property>
+    <addaction name="actionCompilarPrg"/>
+    <addaction name="actionEjecutarPrg"/>
+    <addaction name="actionDetenerPrg"/>
+    <addaction name="separator"/>
+    <addaction name="actionSig_instrucci_n_profundidad"/>
+    <addaction name="actionSig_instrucci_n_superficial"/>
+    <addaction name="separator"/>
+    <addaction name="actionPunto_de_interrupci_n"/>
+    <addaction name="actionBorrar_puntos_de_interrupci_n"/>
+    <addaction name="separator"/>
+    <addaction name="actionMostrar_variables"/>
+    <addaction name="actionMostrar_salida"/>
+    <addaction name="actionMostrar_inspector_de_subprogramas"/>
+   </widget>
+   <widget class="QMenu" name="menuUtilidades">
+    <property name="title">
+     <string>Utilidades</string>
+    </property>
+    <addaction name="actionGenerar_codigo_C"/>
+    <addaction name="actionGenerar_ejecutable"/>
+   </widget>
+   <widget class="QMenu" name="menuAyuda">
+    <property name="title">
+     <string>Ayuda</string>
+    </property>
+    <addaction name="actionAyuda_de_LPP"/>
+    <addaction name="actionAcerca_de_LPP"/>
+   </widget>
+   <addaction name="menuArchivo"/>
+   <addaction name="menuInsertar"/>
+   <addaction name="menuPrograma"/>
+   <addaction name="menuUtilidades"/>
+   <addaction name="menuAyuda"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="dockWidget">
+   <property name="allowedAreas">
+    <set>Qt::LeftDockWidgetArea</set>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents">
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QTreeView" name="tvSubprgs"/>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::TopToolBarArea</set>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>32</width>
+     <height>32</height>
+    </size>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionNuevoPrg"/>
+   <addaction name="actionAbrir"/>
+   <addaction name="actionGuardar"/>
+   <addaction name="separator"/>
+   <addaction name="actionEjecutarPrg"/>
+   <addaction name="actionDetenerPrg"/>
+   <addaction name="actionCompilarPrg"/>
+  </widget>
+  <action name="actionNuevoPrg">
+   <property name="icon">
+    <iconset resource="lpp_res.qrc">
+     <normaloff>:/images/file-new.png</normaloff>:/images/file-new.png</iconset>
+   </property>
+   <property name="text">
+    <string>Nuevo</string>
+   </property>
+  </action>
+  <action name="actionAbrir">
+   <property name="icon">
+    <iconset resource="lpp_res.qrc">
+     <normaloff>:/images/open-file.png</normaloff>:/images/open-file.png</iconset>
+   </property>
+   <property name="text">
+    <string>Abrir</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionGuardar">
+   <property name="icon">
+    <iconset resource="lpp_res.qrc">
+     <normaloff>:/images/save.png</normaloff>:/images/save.png</iconset>
+   </property>
+   <property name="text">
+    <string>Guardar</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionGuardar_como">
+   <property name="icon">
+    <iconset resource="lpp_res.qrc">
+     <normaloff>:/images/save_as.png</normaloff>:/images/save_as.png</iconset>
+   </property>
+   <property name="text">
+    <string>Guardar como</string>
+   </property>
+  </action>
+  <action name="actionSalir">
+   <property name="icon">
+    <iconset resource="lpp_res.qrc">
+     <normaloff>:/images/exit.png</normaloff>:/images/exit.png</iconset>
+   </property>
+   <property name="text">
+    <string>Salir</string>
+   </property>
+  </action>
+  <action name="actionBloque_si_fin_si">
+   <property name="text">
+    <string>Bloque si ... fin si</string>
+   </property>
+  </action>
+  <action name="actionBloque_si_sino_fin_si">
+   <property name="text">
+    <string>Bloque si ... sino ... fin si</string>
+   </property>
+  </action>
+  <action name="actionBloque_caso_fin_caso">
+   <property name="text">
+    <string>Bloque caso ... fin caso</string>
+   </property>
+  </action>
+  <action name="actionBloque_para_fin_para">
+   <property name="text">
+    <string>Bloque para ... fin para</string>
+   </property>
+  </action>
+  <action name="actionBloque_mientras_fin_mientas">
+   <property name="text">
+    <string>Bloque mientras ... fin mientras</string>
+   </property>
+  </action>
+  <action name="actionBloque_repita_hasta">
+   <property name="text">
+    <string>Bloque repita ... hasta</string>
+   </property>
+  </action>
+  <action name="actionCompilarPrg">
+   <property name="icon">
+    <iconset resource="lpp_res.qrc">
+     <normaloff>:/images/compile.png</normaloff>:/images/compile.png</iconset>
+   </property>
+   <property name="text">
+    <string>Compilar</string>
+   </property>
+  </action>
+  <action name="actionEjecutarPrg">
+   <property name="icon">
+    <iconset resource="lpp_res.qrc">
+     <normaloff>:/images/run.png</normaloff>:/images/run.png</iconset>
+   </property>
+   <property name="text">
+    <string>Ejecutar</string>
+   </property>
+  </action>
+  <action name="actionDetenerPrg">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="lpp_res.qrc">
+     <normaloff>:/images/abort-icon.png</normaloff>:/images/abort-icon.png</iconset>
+   </property>
+   <property name="text">
+    <string>Detener ejecución</string>
+   </property>
+  </action>
+  <action name="actionSig_instrucci_n_profundidad">
+   <property name="text">
+    <string>Sig. instrucción (profundidad)</string>
+   </property>
+  </action>
+  <action name="actionSig_instrucci_n_superficial">
+   <property name="text">
+    <string>Sig. instrucción (superficial)</string>
+   </property>
+  </action>
+  <action name="actionPunto_de_interrupci_n">
+   <property name="text">
+    <string>Punto de interrupción</string>
+   </property>
+  </action>
+  <action name="actionBorrar_puntos_de_interrupci_n">
+   <property name="text">
+    <string>Borrar puntos de interrupción</string>
+   </property>
+  </action>
+  <action name="actionMostrar_variables">
+   <property name="text">
+    <string>Mostrar variables</string>
+   </property>
+  </action>
+  <action name="actionMostrar_salida">
+   <property name="text">
+    <string>Mostrar salida</string>
+   </property>
+  </action>
+  <action name="actionMostrar_inspector_de_subprogramas">
+   <property name="text">
+    <string>Mostrar inspector de subprogramas</string>
+   </property>
+  </action>
+  <action name="actionGenerar_codigo_C">
+   <property name="text">
+    <string>Generar codigo C++</string>
+   </property>
+  </action>
+  <action name="actionGenerar_ejecutable">
+   <property name="text">
+    <string>Generar ejecutable</string>
+   </property>
+  </action>
+  <action name="actionAyuda_de_LPP">
+   <property name="text">
+    <string>Ayuda de LPP</string>
+   </property>
+  </action>
+  <action name="actionAcerca_de_LPP">
+   <property name="text">
+    <string>Acerca de LPP</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>LppEditor</class>
+   <extends>QPlainTextEdit</extends>
+   <header>lpp_editor.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="lpp_res.qrc"/>
+ </resources>
+ <connections/>
+</ui>
