@@ -47,7 +47,7 @@ struct TermPos {
     int column;
 };
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 class KeyInput;
 #endif
 
@@ -83,7 +83,7 @@ private:
 private:
     ColorPair cp;
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
     std::unique_ptr<KeyInput> key_input;
 #endif
 };
