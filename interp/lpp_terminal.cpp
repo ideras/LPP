@@ -133,7 +133,7 @@ void Terminal::readString(std::string &text, int max_len, int box_size, const Co
         key = getch();
         
         switch (key) {
-        case KeyRight:
+            case KeyRight:
                 if (cursor_pos < box_size-1 && cursor_pos < text.length())
                     cursor_pos++;
                 else if (start_pos + box_size <= text.length())
@@ -150,7 +150,6 @@ void Terminal::readString(std::string &text, int max_len, int box_size, const Co
             case KeyHome:
                 cursor_pos = 0;
                 start_pos = 0;
-                update_screen = false;
                 break;
 
             case KeyEnd:

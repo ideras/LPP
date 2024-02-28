@@ -10,6 +10,19 @@ static constexpr const char ClearScreen_Code[] = "\033[2J\033[1;1f";
 static constexpr const char Forecolor_Code[] = "\033[38;5;";
 static constexpr const char Backcolor_Code[] = "\033[48;5;";
 
+static std::unordered_map<int, int> key_map = {
+    { 0x425b, KeyDown },
+    { 0x415b, KeyUp },
+    { 0x445b, KeyLeft },
+    { 0x435b, KeyRight },
+    { 0x485b, KeyHome },
+    { 0x465b, KeyEnd },
+    { 0x7e335b, KeyDelete },
+    { 0x7e325b, KeyInsert },
+    { 0x7e365b, KeyPgDown },
+    { 0x7e355b, KeyPgUp },
+};
+
 int ansi_color[] = {
     0,  // Black
     18, // Dark blue
@@ -70,7 +83,6 @@ KeyInput::~KeyInput()
 bool KeyInput::kbhit()
 {
     unsigned char ch;
-    int nread;
 
     if (peek_ch != -1) {
         return true;
@@ -78,7 +90,7 @@ bool KeyInput::kbhit()
 
     curr_settings.c_cc[VMIN] = 0;
     tcsetattr(STDIN_FILENO, TCSANOW, &curr_settings);
-    nread = read(0, &ch, 1);
+    int nread = read(0, &ch, 1);
     curr_settings.c_cc[VMIN] = 1;
     tcsetattr(STDIN_FILENO, TCSANOW, &curr_settings);
 
@@ -91,16 +103,39 @@ bool KeyInput::kbhit()
     
 int KeyInput::getch()
 {
-    char ch;
+    int key;
 
-    if (peek_ch != -1){
-        ch = peek_ch;
+    if (peek_ch != -1) {
+        key = peek_ch;
         peek_ch = -1;
     } else {
+        unsigned char ch;
         read(STDIN_FILENO, &ch, 1);
-    }
 
-    return ch;
+        key = ch;
+    }
+    if (key == '\x1b' && kbhit()) {
+        char chb[5];
+        int nread = read(STDIN_FILENO, chb, 5);
+        key = peek_ch;
+        peek_ch = -1;
+        switch (nread) {
+            case 1:
+                key = ((chb[0] << 8) | key);
+                break;
+            case 2:
+                key = ((chb[1] << 16) | (chb[0] << 8) | key);
+                break;
+            case 3:
+                key = ((chb[2] << 24) | (chb[1] << 16) | (chb[0] << 8) | key);
+                break;
+            default:
+               key = (chb[0] | (chb[1] << 8) | (chb[2] << 16) | (chb[3] << 24)); 
+        }
+    }
+    auto it = key_map.find(key);
+    
+    return (it != key_map.end())? it->second : key;
 }
 
 Terminal::Terminal()

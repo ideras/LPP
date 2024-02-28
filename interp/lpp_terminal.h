@@ -5,19 +5,19 @@
 #include <memory>
 
 enum Key {
-    KeyDown      = 0x8042,
+    KeyEnter     = 0x000A,
+    KeyEsc       = 0x001B,
+    KeyBackspace = 0x007f,
     KeyUp        = 0x8041,
+    KeyDown      = 0x8042,
     KeyLeft      = 0x8044,
     KeyRight     = 0x8043,
     KeyHome      = 0x8048,
     KeyEnd       = 0x8046,
-    KeyBackspace = 0x007f,
     KeyDelete    = 0x8033,
     KeyInsert    = 0x8032,
     KeyPgDown    = 0x8036,
     KeyPgUp      = 0x8035,
-    KeyEsc       = 0x001B,
-    KeyEnter     = 0x000A,
 };
 
 enum class Color {
