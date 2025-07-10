@@ -22,7 +22,8 @@ void LppVariant::destroy()
 {
     switch (_kind) {
         case Kind::String: as_string.~basic_string(); break;
-        case Kind::Array: as_array.~vector(); break;
+        case Kind::Array: 
+        case Kind::Record: as_array.~vector(); break;
         default:
             break;
     }

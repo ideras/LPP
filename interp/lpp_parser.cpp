@@ -141,7 +141,7 @@ Ast::NodeUPtr LppParser::type()
 
             std::string text = expect(Token::IntConst, "Se esperaba un valor entero");
 
-            int size = std::stoi(text);
+            int size = safeStringToInt(text);
             expect(Token::CloseBracket, "Se esperaba ']'");
 
             return std::make_unique<Ast::StringType>(size);
@@ -159,11 +159,11 @@ Ast::NodeUPtr LppParser::type()
 
         std::vector<int> dims;
 
-        dims.push_back(std::stoi(text));
+        dims.push_back(safeStringToInt(text));
         while (tokenIs(Token::Comma)) {
             token = lexer.getNextToken();
 
-            dims.emplace_back(std::stoi(lexer.getText()));
+            dims.emplace_back(safeStringToInt(lexer.getText()));
 
             token = lexer.getNextToken();
         }
@@ -1152,4 +1152,15 @@ std::string LppParser::expect(Token tk, const std::string &message)
     token = lexer.getNextToken();
 
     return text;
+}
+
+int LppParser::safeStringToInt(const std::string& text)
+{
+    try {
+        return std::stoi(text);
+    } catch (const std::invalid_argument& e) {
+        throw LPPException(lexer.getLine(), "Valor entero inválido: '" + text + "'");
+    } catch (const std::out_of_range& e) {
+        throw LPPException(lexer.getLine(), "Valor entero fuera de rango: '" + text + "'");
+    }
 }

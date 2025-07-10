@@ -2,6 +2,12 @@
 #include "lpp_terminal.h"
 #include "str_util.h"
 
+// Input buffer size constants
+static constexpr int DEFAULT_STRING_BUFFER_SIZE = 512;
+static constexpr int DEFAULT_STRING_DISPLAY_SIZE = 32;
+static constexpr int DEFAULT_INT_BUFFER_SIZE = 10;
+static constexpr int DEFAULT_INT_DISPLAY_SIZE = 10;
+
 void Terminal::setTextColor(Color _color)
 {
     ColorPair cp = getColor();
@@ -42,7 +48,7 @@ std::string Terminal::readString()
 {
     std::string text("");
 
-    readString(text, 512, 32, {Color::Yellow, Color::Blue});
+    readString(text, DEFAULT_STRING_BUFFER_SIZE, DEFAULT_STRING_DISPLAY_SIZE, {Color::Yellow, Color::Blue});
 
     return text;
 }
@@ -50,7 +56,7 @@ std::string Terminal::readString()
 int Terminal::readInt()
 {
     std::string text;
-    readString(text, 10, 10, {Color::Yellow, Color::Blue});
+    readString(text, DEFAULT_INT_BUFFER_SIZE, DEFAULT_INT_DISPLAY_SIZE, {Color::Yellow, Color::Blue});
 
     try { return std::stoi(text); }
     catch (std::invalid_argument const& ex) {

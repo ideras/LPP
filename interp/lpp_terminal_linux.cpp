@@ -61,23 +61,31 @@ public:
 private:
     struct termios prev_settings, curr_settings;
     int peek_ch;
+    bool settings_modified;
 };
 
-KeyInput::KeyInput()
+KeyInput::KeyInput() : peek_ch(-1), settings_modified(false)
 {
-    tcgetattr(STDIN_FILENO, &prev_settings);
+    if (tcgetattr(STDIN_FILENO, &prev_settings) != 0) {
+        // If we can't get terminal settings, don't modify them
+        return;
+    }
+    
     curr_settings = prev_settings;
     curr_settings.c_lflag &= ~(ICANON | ECHO | ISIG);
     curr_settings.c_cc[VMIN] = 1;
     curr_settings.c_cc[VTIME] = 0;
 
-    tcsetattr(STDIN_FILENO, TCSANOW, &curr_settings);
-    peek_ch = -1;
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &curr_settings) == 0) {
+        settings_modified = true;
+    }
 }
     
 KeyInput::~KeyInput()
 {
-    tcsetattr(STDIN_FILENO, TCSANOW, &prev_settings);
+    if (settings_modified) {
+        tcsetattr(STDIN_FILENO, TCSANOW, &prev_settings);
+    }
 }
 
 bool KeyInput::kbhit()

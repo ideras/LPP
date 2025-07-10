@@ -22,6 +22,8 @@ private:
     std::string msg;
 };
 
+// Exception used for implementing return statements in the interpreter
+// This is an acceptable use of exceptions for control flow in this context
 class ReturnException
 {
 public:

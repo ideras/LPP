@@ -74,6 +74,8 @@ private:
     std::string expect(Token tk, const std::string& message);
 
 private:
+    int safeStringToInt(const std::string& text);
+    
     LppLexer& lexer;
     Token token;
 };

@@ -3,9 +3,14 @@
  */
 
 #include <iostream>
+#include <array>
 #include "lpp_exception.h"
 #include "lpp_lexer.h"
 #include "str_util.h"
+
+// Token parsing limits
+static constexpr size_t MAX_TOKEN_PART_LENGTH = 20;
+static constexpr size_t MAX_COMBINED_TOKEN_LENGTH = 30;
 
 #define DIGITOS	while (isdigit(ch))         \
                 {                           \
@@ -19,8 +24,8 @@ struct  TKeyword
     Token value;
 };
 
-TKeyword kwords[] = {
-    {"arreglo"	, Token::KwArreglo},
+constexpr std::array<TKeyword, 50> keywords = {
+    TKeyword{"arreglo"	, Token::KwArreglo},
     {"de"		, Token::KwDe},
     {"entero"	, Token::KwEntero},
     {"real"		, Token::KwReal},
@@ -45,7 +50,6 @@ TKeyword kwords[] = {
     {"fin para", Token::KwFinPara},
     {"llamar"	, Token::KwLlamar},
     {"repita"	, Token::KwRepita},
-    {"hasta"	, Token::KwHasta},
     {"caso"		, Token::KwCaso},
     {"fin caso"	, Token::KwFinCaso},
     {"o"		, Token::OpBoolOr},
@@ -158,13 +162,13 @@ Token LppLexer::getNextToken()
                 while ((ch = nextChar()) == ' ');
 
 				str = "";
-                while (isalpha(ch))
+                while (isalpha(ch) && str.length() < MAX_TOKEN_PART_LENGTH) // Prevent excessive token length
                 {
                     str += static_cast<char>(ch);
                     ch = nextChar();
 				}
 
-                if (!str.empty())
+                if (!str.empty() && (text.length() + str.length() + 1) < MAX_COMBINED_TOKEN_LENGTH) // Prevent buffer overrun
                 {
                     text += ' ';
                     text += str;
@@ -175,10 +179,10 @@ Token LppLexer::getNextToken()
                 ungetChar(ch);
             
             lbuffer = str::lower(text);
-            for (int i=0; i < sizeof(kwords)/sizeof(kwords[0]); i++)
+            for (const auto& keyword : keywords)
             {
-                if (lbuffer.compare(kwords[i].text) == 0) {
-                    return kwords[i].value;
+                if (lbuffer.compare(keyword.text) == 0) {
+                    return keyword.value;
                 }
 			}
             

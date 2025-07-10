@@ -11,12 +11,12 @@ LppFileManager::~LppFileManager()
 
 int LppFileManager::openFile(const std::string &filepath, std::ios::openmode flags, int blk_size)
 {
-    StreamUPtr upf = std::make_unique<std::fstream>(filepath.c_str(), flags);
-    if (!reinterpret_cast<std::fstream *>(upf.get())->is_open()) {
+    auto fstream_ptr = std::make_unique<std::fstream>(filepath.c_str(), flags);
+    if (!fstream_ptr->is_open()) {
         return -1;
     }
     int fh = getNextFileHandle();
-    open_files[fh] = std::move(upf);
+    open_files[fh] = std::move(fstream_ptr);
     file_info[fh] = blk_size;
 
     return fh;
