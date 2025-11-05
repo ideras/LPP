@@ -516,6 +516,113 @@ Inicio
 Fin
 ```
 
+### Inicialización de Arreglos con Listas
+
+LPP permite inicializar arreglos usando listas de inicialización, lo cual es una forma más concisa y legible de asignar valores iniciales.
+
+#### Sintaxis para Arreglos Unidimensionales
+
+```lpp
+variable <- [ valor1, valor2, valor3, ... ]
+```
+
+**Ejemplo:**
+
+```lpp
+Arreglo [10] De Entero numeros
+Entero i
+
+Inicio
+    // Inicialización usando lista
+    numeros <- [ 83, 89, 60, 49, 34, 80, 25, 66, 42, 22 ]
+
+    // Imprimir los valores
+    Para i <- 1 Hasta 10 Haga
+        Escriba numeros[i]
+    Fin Para
+Fin
+```
+
+Esto es equivalente a:
+
+```lpp
+Inicio
+    numeros[1] <- 83
+    numeros[2] <- 89
+    numeros[3] <- 60
+    numeros[4] <- 49
+    numeros[5] <- 34
+    numeros[6] <- 80
+    numeros[7] <- 25
+    numeros[8] <- 66
+    numeros[9] <- 42
+    numeros[10] <- 22
+Fin
+```
+
+#### Inicialización de Arreglos Multidimensionales
+
+Para arreglos bidimensionales, usa listas anidadas:
+
+```lpp
+Arreglo [3, 2] De Entero matriz
+
+Inicio
+    // Inicialización de matriz 3x2
+    matriz <- [ [ 10, 20 ],
+                [ 30, 40 ],
+                [ 50, 60 ] ]
+
+    Escriba matriz[1,1]  // 10
+    Escriba matriz[2,2]  // 40
+    Escriba matriz[3,1]  // 50
+Fin
+```
+
+#### Inicialización de Arreglos de Arreglos
+
+```lpp
+Arreglo [2] De Arreglo [3] De Entero tabla
+
+Inicio
+    // Inicialización de arreglo de arreglos
+    tabla <- [ [ 100, 200, 300 ],
+               [ 400, 500, 600 ] ]
+
+    Escriba tabla[1][1]  // 100
+    Escriba tabla[2][3]  // 600
+Fin
+```
+
+**Ejemplo con tipos Real:**
+
+```lpp
+Arreglo [5] De Real temperaturas
+
+Inicio
+    temperaturas <- [ 23.5, 25.0, 22.8, 26.3, 24.1 ]
+
+    Escriba "Temperaturas registradas:"
+    Para i <- 1 Hasta 5 Haga
+        Escriba temperaturas[i]
+    Fin Para
+Fin
+```
+
+**Ejemplo con tipos Cadena:**
+
+```lpp
+Arreglo [4] De Cadena dias
+
+Inicio
+    dias <- [ "Lunes", "Martes", "Miércoles", "Jueves" ]
+
+    Para i <- 1 Hasta 4 Haga
+        Escriba dias[i]
+    Fin Para
+Fin
+```
+
 ---
 
 ## Cadenas
@@ -666,6 +773,163 @@ Inicio
     Fin Para
 Fin
 ```
+
+### Inicialización de Registros con Listas
+
+LPP permite inicializar registros completos usando listas de inicialización. Los valores deben proporcionarse en el mismo orden en que los campos fueron declarados en el registro.
+
+#### Sintaxis
+
+```lpp
+variable <- { valor_campo1, valor_campo2, valor_campo3, ... }
+```
+
+**Ejemplo básico:**
+
+```lpp
+Registro Persona
+    Cadena nombre
+    Entero edad
+    Real altura
+Fin Registro
+
+Persona estudiante
+
+Inicio
+    // Inicialización usando lista
+    estudiante <- { "María", 20, 1.65 }
+
+    Escriba estudiante.nombre   // María
+    Escriba estudiante.edad      // 20
+    Escriba estudiante.altura    // 1.65
+Fin
+```
+
+#### Registros con Arreglos
+
+Cuando un registro contiene arreglos, se pueden inicializar usando listas anidadas:
+
+```lpp
+Registro Datos
+    Entero id
+    Real temperatura
+    Arreglo [5] De Entero mediciones
+    Booleano activo
+Fin Registro
+
+Datos sensor
+
+Inicio
+    // Inicialización con arreglo incluido
+    sensor <- { 101, 25.5, [ 10, 20, 30, 40, 50 ], Verdadero }
+
+    Escriba sensor.id            // 101
+    Escriba sensor.temperatura   // 25.5
+    Escriba sensor.mediciones[1] // 10
+    Escriba sensor.mediciones[5] // 50
+    Escriba sensor.activo        // Verdadero
+Fin
+```
+
+#### Ejemplo con Arreglos Multidimensionales
+
+```lpp
+Registro Experimento
+    Entero codigo
+    Real factor
+    Arreglo [2] De Arreglo [2] De Entero resultados
+    Booleano completado
+Fin Registro
+
+Experimento exp
+
+Inicio
+    // Inicialización compleja con matriz anidada
+    exp <- { 9897, 3.14159, [ [ 83, 89 ], [ 60, 49 ] ], Falso }
+
+    Escriba exp.codigo              // 9897
+    Escriba exp.factor              // 3.14159
+    Escriba exp.resultados[1][1]    // 83
+    Escriba exp.resultados[1][2]    // 89
+    Escriba exp.resultados[2][1]    // 60
+    Escriba exp.resultados[2][2]    // 49
+    Escriba exp.completado          // Falso
+Fin
+```
+
+#### Ejemplo Completo con Múltiples Arreglos
+
+```lpp
+Registro Laboratorio
+    Entero id
+    Real temperatura
+    Arreglo [5] De Arreglo [2] De Entero muestras
+    Booleano verificado
+Fin Registro
+
+Laboratorio lab
+
+Inicio
+    // Inicialización con múltiples arreglos bidimensionales
+    lab <- { 9897,
+             3.14159,
+             [ [ 83, 89 ],
+               [ 60, 49 ],
+               [ 34, 80 ],
+               [ 25, 66 ],
+               [ 42, 22 ] ],
+             Falso }
+
+    Escriba "ID de Laboratorio: "
+    Escriba lab.id                  // 9897
+    Escriba "Temperatura: "
+    Escriba lab.temperatura         // 3.14159
+    Escriba "Primera muestra:"
+    Escriba lab.muestras[1][1]      // 83
+    Escriba lab.muestras[1][2]      // 89
+    Escriba "Última muestra:"
+    Escriba lab.muestras[5][1]      // 42
+    Escriba lab.muestras[5][2]      // 22
+Fin
+```
+
+#### Registros Anidados con Inicialización
+
+También puedes inicializar registros que contienen otros registros:
+
+```lpp
+Registro Punto
+    Real x
+    Real y
+Fin Registro
+
+Registro Rectangulo
+    Punto esquina1
+    Punto esquina2
+    Cadena color
+Fin Registro
+
+Rectangulo figura
+
+Inicio
+    // Inicialización de registro con registros anidados
+    figura <- { { 0.0, 0.0 }, { 10.0, 5.0 }, "Azul" }
+
+    Escriba figura.esquina1.x     // 0.0
+    Escriba figura.esquina1.y     // 0.0
+    Escriba figura.esquina2.x     // 10.0
+    Escriba figura.esquina2.y     // 5.0
+    Escriba figura.color          // Azul
+Fin
+```
+
+**Ventajas de la Inicialización con Listas:**
+
+1. **Código más conciso**: Menos líneas de código para inicializar estructuras complejas
+2. **Más legible**: Es más fácil ver todos los valores iniciales de un vistazo
+3. **Menos errores**: Reduce la posibilidad de olvidar inicializar algún campo
+
+**Nota importante:** El número y tipo de valores en la lista de inicialización debe coincidir exactamente con la definición del registro.
 
 ---
 
@@ -1017,12 +1281,8 @@ Inicio
 Fin
 
 Inicio
-    // Llenar el arreglo
-    numeros[1] <- 10
-    numeros[2] <- 25
-    numeros[3] <- 30
-    numeros[4] <- 45
-    numeros[5] <- 50
+    // Llenar el arreglo usando lista de inicialización
+    numeros <- [ 10, 25, 30, 45, 50 ]
 
     Escriba "Ingrese un número a buscar:"
     Lea buscar
@@ -1172,6 +1432,142 @@ Inicio
 Fin
 ```
 
+### Ejemplo 6: Análisis de Datos con Inicialización de Listas
+
+Este ejemplo demuestra el uso de listas de inicialización para arreglos y registros:
+
+```lpp
+Registro DatosSensor
+    Entero id
+    Cadena ubicacion
+    Arreglo [7] De Real temperaturas
+    Real promedio
+Fin Registro
+
+Funcion CalcularPromedioTemperaturas(Arreglo [7] De Real temps): Real
+Real suma
+Entero i
+Inicio
+    suma <- 0.0
+    Para i <- 1 Hasta 7 Haga
+        suma <- suma + temps[i]
+    Fin Para
+    Retorne suma / 7
+Fin
+
+Arreglo [3] De DatosSensor sensores
+Entero i, j
+
+Inicio
+    Escriba "=== Sistema de Monitoreo de Temperatura ==="
+
+    // Inicializar sensores con listas de inicialización
+    sensores[1] <- { 101,
+                     "Bodega Norte",
+                     [ 22.5, 23.1, 22.8, 23.5, 22.9, 23.2, 23.0 ],
+                     0.0 }
+
+    sensores[2] <- { 102,
+                     "Bodega Sur",
+                     [ 24.1, 24.5, 24.3, 24.7, 24.2, 24.6, 24.4 ],
+                     0.0 }
+
+    sensores[3] <- { 103,
+                     "Bodega Este",
+                     [ 21.8, 22.0, 21.9, 22.2, 21.7, 22.1, 21.9 ],
+                     0.0 }
+
+    // Calcular promedios
+    Para i <- 1 Hasta 3 Haga
+        sensores[i].promedio <- CalcularPromedioTemperaturas(sensores[i].temperaturas)
+    Fin Para
+
+    // Mostrar resultados
+    Para i <- 1 Hasta 3 Haga
+        Escriba "-----------------------------------"
+        Escriba "Sensor ID: " + Entero_A_Cadena(sensores[i].id)
+        Escriba "Ubicación: " + sensores[i].ubicacion
+        Escriba "Temperaturas de la semana:"
+
+        Para j <- 1 Hasta 7 Haga
+            Escriba "  Día " + Entero_A_Cadena(j) + ": " + Real_A_Cadena(sensores[i].temperaturas[j], 1) + "°C"
+        Fin Para
+
+        Escriba "Promedio: " + Real_A_Cadena(sensores[i].promedio, 2) + "°C"
+
+        // Alertas
+        Si sensores[i].promedio > 24.0 Entonces
+            Escriba "ALERTA: Temperatura alta"
+        Sino Si sensores[i].promedio < 22.0 Entonces
+            Escriba "ALERTA: Temperatura baja"
+        Sino
+            Escriba "Estado: NORMAL"
+        Fin Si
+    Fin Para
+
+    Escriba "-----------------------------------"
+Fin
+```
+
+### Ejemplo 7: Gestión de Inventario con Matrices
+
+Este ejemplo muestra el uso de listas de inicialización con arreglos multidimensionales:
+
+```lpp
+Arreglo [3, 4] De Entero inventario
+Arreglo [3] De Cadena productos
+Arreglo [4] De Cadena sucursales
+Entero i, j, total
+Real promedio
+
+Inicio
+    Escriba "=== Sistema de Inventario ==="
+
+    // Inicializar nombres de productos
+    productos <- [ "Laptop", "Mouse", "Teclado" ]
+
+    // Inicializar nombres de sucursales
+    sucursales <- [ "Centro", "Norte", "Sur", "Este" ]
+
+    // Inicializar inventario (producto x sucursal)
+    inventario <- [ [ 45, 32, 28, 51 ],   // Laptops
+                    [ 120, 95, 88, 105 ],  // Mice
+                    [ 78, 65, 71, 82 ] ]   // Teclados
+
+    // Mostrar inventario por producto
+    Para i <- 1 Hasta 3 Haga
+        Escriba "=============================="
+        Escriba "Producto: " + productos[i]
+        total <- 0
+
+        Para j <- 1 Hasta 4 Haga
+            Escriba "  " + sucursales[j] + ": " + Entero_A_Cadena(inventario[i,j]) + " unidades"
+            total <- total + inventario[i,j]
+        Fin Para
+
+        promedio <- total / 4.0
+        Escriba "Total: " + Entero_A_Cadena(total) + " unidades"
+        Escriba "Promedio por sucursal: " + Real_A_Cadena(promedio, 1) + " unidades"
+    Fin Para
+
+    // Resumen por sucursal
+    Escriba ""
+    Escriba "=== Resumen por Sucursal ==="
+
+    Para j <- 1 Hasta 4 Haga
+        total <- 0
+        Escriba "----------------------------"
+        Escriba "Sucursal: " + sucursales[j]
+
+        Para i <- 1 Hasta 3 Haga
+            total <- total + inventario[i,j]
+        Fin Para
+
+        Escriba "Total de artículos: " + Entero_A_Cadena(total)
+    Fin Para
+Fin
+```
+
 ---
 
 ## Alias de Tipos
@@ -1186,15 +1582,25 @@ Vector posicion
 Matriz tabla
 
 Inicio
+    // Inicialización tradicional
     posicion[1] <- 1.5
     posicion[2] <- 2.5
     posicion[3] <- 3.5
 
-    tabla[1,1] <- 1
-    tabla[1,2] <- 2
-    tabla[1,3] <- 3
+    // O usando listas de inicialización
+    posicion <- [ 1.5, 2.5, 3.5 ]
+
+    // Inicialización de matriz con listas
+    tabla <- [ [ 1, 2, 3 ],
+               [ 4, 5, 6 ],
+               [ 7, 8, 9 ] ]
+
+    Escriba posicion[1]
+    Escriba tabla[2,2]  // 5
 Fin
 ```
+
+Los alias de tipos funcionan perfectamente con las listas de inicialización, permitiendo escribir código más limpio y comprensible.
 
 ---
 
