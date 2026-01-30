@@ -22,7 +22,7 @@ bool LppConf::findTerminal()
     };
 
     static QString term_args[] = {
-        QStringLiteral("--geometry 910x660+10+10 -e"),
+        QStringLiteral("-e"),
         QLatin1String(""), // TODO: Set gnome-terminal arguments
         QStringLiteral("-geometry 90x30 -fa 'Monospace' -fs 14 -e"),
     };

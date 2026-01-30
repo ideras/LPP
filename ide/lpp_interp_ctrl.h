@@ -13,7 +13,7 @@
 #include "lpp_conf.h"
 
 enum class LppInterpResult
-{ Success, TerminalNotFound, CannotStartInterp };
+{ Success, TerminalNotFound, CannotStartInterp, InterpNotFound };
 
 class LppInterpCtrl: public QObject
 {

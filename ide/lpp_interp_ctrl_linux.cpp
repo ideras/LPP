@@ -14,6 +14,10 @@ LppInterpResult LppInterpCtrl::execProgram(const QString &prg_name)
         return LppInterpResult::TerminalNotFound;
     }
 
+    if (!QFile::exists(lpp_conf.interp)) {
+        return LppInterpResult::InterpNotFound;
+    }
+
     QString cmd = term_file.fileName();
     QStringList args;
 
@@ -25,7 +29,7 @@ LppInterpResult LppInterpCtrl::execProgram(const QString &prg_name)
 
     lppi_proc.start(cmd, args);
 
-    if (!lppi_proc.waitForStarted(500)) {
+    if (!lppi_proc.waitForStarted(3000)) {
         return LppInterpResult::CannotStartInterp;
     }
 
@@ -42,8 +46,10 @@ void LppInterpCtrl::onExecProgramFinished(int exit_code)
     disconnect(&lppi_proc, qOverload<int, QProcess::ExitStatus>(&QProcess::finished),
                 this, &LppInterpCtrl::onExecProgramFinished);
 
+    last_error.clear();
     if (exit_code != 0) {
-        qDebug() << lppi_proc.readAllStandardError();
+        last_error = lppi_proc.readAllStandardError();
+        qDebug() << last_error;
     }
     emit finished(1);
 }

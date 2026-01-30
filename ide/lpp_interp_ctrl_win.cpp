@@ -1,5 +1,6 @@
 #include <qt_windows.h>
 #include <QDir>
+#include <QFile>
 #include <thread>
 #include "lpp_interp_ctrl.h"
 
@@ -14,6 +15,10 @@ LppInterpResult LppInterpCtrl::execProgram(const QString& prg_name)
 {
     if (waiter_thread.joinable()) {
         waiter_thread.join();
+    }
+
+    if (!QFile::exists(lpp_conf.interp)) {
+        return LppInterpResult::InterpNotFound;
     }
 
     STARTUPINFO si;

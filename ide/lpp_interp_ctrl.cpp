@@ -1,4 +1,5 @@
 #include "lpp_interp_ctrl.h"
+#include <QFile>
 
 LppInterpCtrl::LppInterpCtrl(const LppConf& lpp_conf)
     : lpp_conf(lpp_conf),
@@ -7,6 +8,10 @@ LppInterpCtrl::LppInterpCtrl(const LppConf& lpp_conf)
 
 LppInterpResult LppInterpCtrl::compileProgram(const QString &prg_name)
 {
+    if (!QFile::exists(lpp_conf.interp)) {
+        return LppInterpResult::InterpNotFound;
+    }
+
     QString cmd = lpp_conf.interp;
     QStringList args;
 
@@ -18,7 +23,7 @@ LppInterpResult LppInterpCtrl::compileProgram(const QString &prg_name)
     lppi_proc.setReadChannel(QProcess::StandardError);
     lppi_proc.start(cmd, args);
 
-    if (!lppi_proc.waitForStarted(500)) {
+    if (!lppi_proc.waitForStarted(3000)) {
         lppi_proc.close();
 
         return LppInterpResult::CannotStartInterp;

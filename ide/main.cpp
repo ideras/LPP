@@ -25,15 +25,25 @@ int main(int argc, char *argv[])
             lpp_conf.parserTerminalArgs(term_args);
         }
     }
+    bool save_conf = false;
     if (lpp_conf.terminal.isEmpty()) {
         if (!lpp_conf.findTerminal()) {
             std::cerr << "No se pudo encontrar un simulador de terminal.\n"
                          "Por favor instale uno y especifiquelo en el archivo lpp.ini";
             return 1;
         }
+        save_conf = true;
     }
     if (lpp_conf.interp.isEmpty()) {
         lpp_conf.interp = app_path + "/lpp_interp";
+        save_conf = true;
+    }
+
+    if (save_conf) {
+        QSettings settings(conf_filepath, QSettings::IniFormat);
+        settings.setValue("Terminal", lpp_conf.terminal);
+        settings.setValue("TerminalArgs", lpp_conf.term_arg_list.join(" "));
+        settings.setValue("LppInterp", lpp_conf.interp);
     }
 
     MainWindow mw(lpp_conf);

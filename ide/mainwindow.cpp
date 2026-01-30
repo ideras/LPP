@@ -60,6 +60,11 @@ void MainWindow::reportErrorMessage(LppInterpResult lires)
                                                  "Por favor especifique el comando en el archivo lpp.ini");
             break;
         }
+        case LppInterpResult::InterpNotFound: {
+            QMessageBox::critical(this, "Error", "No se encontr\u00f3 el ejecutable del int\u00e9rprete de LPP.<br/>"
+                                                 "Por favor aseg\u00farese de haber copiado el int\u00e9rprete al directorio del IDE.");
+            break;
+        }
         case LppInterpResult::CannotStartInterp: {
             QMessageBox::critical(this, "Error", "No se pudo iniciar el interprete de LPP");
             break;
@@ -160,6 +165,10 @@ void MainWindow::onProgramFinished(int action)
             QMessageBox::critical(this, "Error", lppi_ctrl.lastError());
         } else {
             QMessageBox::information(this, "Info", "El programa compila con \u00e9xito");
+        }
+    } else if (action == 1) {
+        if (!lppi_ctrl.lastError().isEmpty()) {
+             QMessageBox::critical(this, "Error", lppi_ctrl.lastError());
         }
     }
 }

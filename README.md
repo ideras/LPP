@@ -1,88 +1,166 @@
-# LPP (Lenguaje de Programacion para Principiantes)
-LPP es un lenguaje de programación interpretado diseñado para trabajar con la sintaxis y las convenciones del idioma español. Proporciona un entorno de desarrollo integrado (IDE) y un intérprete para escribir y ejecutar programas en el lenguaje.
-Originalmente LPP fue creado como un requisito de graduación de Ingenieria en Sistemas computacionales por mi persona (Ivan de Jesus Deras).  La versión original fue creada en el año 2002.  Esta versión es una reescritura de la mayoria de las partes de LPP con el proposito de hacerlo amigable al Open Source y motivar las contribuciones al proyecto.
-Personalmente no habia liberado este código porque con el pasar del tiempo LPP dejo de ser utilizado en mi pais (Honduras) y pensé que el proyecto habia muerto, hasta que a inicios del 2024 alguien de Colombia llamado Kevin Bermudez me contactó y me dejó saber que LPP todavia se utiliza en Colombia.
+# LPP (Lenguaje de Programación para Principiantes)
 
-## Características Principales
+LPP es un lenguaje de programación **interpretado**, diseñado específicamente para trabajar con **sintaxis y convenciones en español**, con el objetivo de facilitar el aprendizaje de la programación a estudiantes principiantes. El proyecto incluye tanto un **intérprete** como un **Entorno de Desarrollo Integrado (IDE)**.
 
-- **Lenguaje Interpretado**: Escrito en C++17, el intérprete permite ejecutar programas escritos en el lenguaje.
-- **Soporte de Tipos de Datos**: Admite variables de tipos primitivos como enteros de 32 bits, reales de doble precisión, caracteres y booleanos.
-- **Manejo de Arreglos y Cadenas**: Permite el uso de arreglos de tamaño definido y cadenas de tamaño fijo e indefinido.
-- **Alias de Tipos de Datos**: Facilita la definición de alias para los tipos de datos, lo que mejora la legibilidad del código.
-- **Estructuras de Datos**: Acepta la definición de estructuras, también conocidas como registros en otros lenguajes.
+LPP fue creado originalmente en **2002** como proyecto de graduación de Ingeniería en Sistemas Computacionales por **Iván de Jesús Deras**. La versión actual es una **reescritura profunda** de la mayor parte del sistema original, orientada a:
 
-## Requisitos Previos
+* Modernizar el código base
+* Facilitar su mantenimiento
+* Adaptarlo a un modelo **Open Source**
+* Fomentar contribuciones de la comunidad
 
-Para compilar y ejecutar el proyecto, se necesitan los siguientes requisitos:
+Durante muchos años el proyecto permaneció inactivo, bajo la suposición de que LPP había dejado de utilizarse en Honduras. Sin embargo, a inicios de **2024**, el contacto de un usuario en Colombia confirmó que LPP **sigue siendo utilizado con fines educativos**, lo que motivó la liberación y reactivación del proyecto.
 
-- CMake
-- re2c
-- Compilador de C++ con soporte para C++17
-- QT version 6.2
+---
 
-## Estructura
+## Características principales
 
-- El folder **interp** contiene el código fuente del interprete.
-- El folder **test_interp** contiene un seria de pruebas unitarias para el interprete.
-- El folder **ide** contiene el codigo del IDE del LPP.
+* **Lenguaje interpretado** escrito en **C++17**
+* **Sintaxis en español**, pensada para principiantes
+* **Tipos de datos primitivos**:
 
-## Instalación
+  * Enteros de 32 bits
+  * Reales de doble precisión
+  * Caracteres
+  * Booleanos
+* **Arreglos** de tamaño definido
+* **Cadenas** de tamaño fijo e indefinido
+* **Alias de tipos de datos**, para mejorar la legibilidad del código
+* **Estructuras de datos** (registros)
+* IDE dedicado para edición y ejecución de programas
 
-1. Clona el repositorio desde GitHub:
+---
+
+## Requisitos
+
+Para compilar y ejecutar el proyecto se requiere:
+
+* Compilador con soporte para **C++17**
+* **CMake**
+* **re2c**
+* **Qt 6.2** (para el IDE)
+
+---
+
+## Estructura del proyecto
+
+```
+LPP/
+├── interp/        # Código fuente del intérprete
+├── test_interp/  # Pruebas unitarias del intérprete
+└── ide/           # Código fuente del IDE
+```
+
+---
+
+## Instalación y compilación
+
+### Clonar el repositorio
 
 ```bash
 git clone https://github.com/ideras/LPP.git
-```
-
-2. Navega al directorio del proyecto:
-
-```bash
 cd LPP
 ```
 
-3. Configura y compila el interprete utilizando CMake:
+### Compilar el intérprete
 
 ```bash
-mkdir build-interp && cd build-interp
+mkdir build-interp
+cd build-interp
 cmake ../interp
 cmake --build .
 ```
 
-3. Configura y compila el IDE utilizando CMake:
+### Compilar el IDE
 
 ```bash
-mkdir build-ide && cd build-ide
+mkdir build-ide
+cd build-ide
 cmake ../ide
 cmake --build .
 ```
 
+---
+
+## Configuración del IDE
+
+El IDE utiliza un archivo de configuración llamado **`lpp.ini`**, ubicado en el mismo directorio que el ejecutable `lpp_ide`.
+
+Si el archivo no existe, el IDE lo creará automáticamente con valores predeterminados la primera vez que se ejecute.
+
+### Parámetros disponibles
+
+* **Terminal**: Ruta al emulador de terminal
+
+  * Ejemplo: `/usr/bin/konsole`, `/usr/bin/xterm`
+* **TerminalArgs**: Argumentos utilizados para ejecutar el intérprete
+
+  * Ejemplo: `-e`
+* **LppInterp**: Ruta al ejecutable del intérprete `lpp_interp`
+
+### Ejemplo de `lpp.ini`
+
+```ini
+[General]
+Terminal=/usr/bin/konsole
+TerminalArgs=-e
+LppInterp=/ruta/a/lpp_interp
+```
+
+---
+
 ## Uso
 
-Una vez compilado, puedes utilizar el intérprete y el IDE para escribir y ejecutar programas en el lenguaje. Antes de ejecutar el IDE
-debes copiar el ejecutable del interprete en el mismo directorio del IDE.  Luego simplemente inicias el IDE con el siguiente comando:
+### Ejecutar el IDE
+
+Antes de iniciar el IDE, asegúrate de que el ejecutable del intérprete (`lpp_interp`) se encuentre en el mismo directorio que `lpp_ide`.
+
+Luego, ejecuta:
 
 ```bash
 ./lpp_ide
 ```
 
-En caso que desees ejecutar un programa de LPP directamente desde la terminal lo puedes hacer de la siguiente manera:
+### Ejecutar un programa desde la terminal
+
+También puedes ejecutar programas directamente desde la línea de comandos:
 
 ```bash
 ./lpp_interp --action run holamundo.lpp
 ```
-En este caso holamundo.lpp es el nombre del programa de lpp que queremos ejecutar.
+
+Donde `holamundo.lpp` es el archivo fuente del programa escrito en LPP.
+
+---
 
 ## Contribuciones
 
-Las contribuciones son bienvenidas y alentadas. Si deseas contribuir al proyecto, sigue estos pasos:
+Las contribuciones son **bienvenidas y altamente valoradas**.
 
-1. Haz un fork del proyecto.
-2. Crea una nueva branch (`git checkout -b feature/nueva-caracteristica`).
-3. Realiza tus cambios y haz commit de ellos (`git commit -am 'Agrega nueva característica'`).
-4. Haz push a la branch (`git push origin feature/nueva-caracteristica`).
-5. Abre un pull request
+Para contribuir:
+
+1. Realiza un **fork** del repositorio
+2. Crea una nueva rama:
+
+   ```bash
+   git checkout -b feature/nueva-caracteristica
+   ```
+3. Realiza tus cambios y confirma los commits:
+
+   ```bash
+   git commit -am "Agrega nueva característica"
+   ```
+4. Envía la rama a tu fork:
+
+   ```bash
+   git push origin feature/nueva-caracteristica
+   ```
+5. Abre un **Pull Request**
+
+---
 
 ## Licencia
 
-Este proyecto está licenciado bajo la Licencia BSD de 2 cláusulas. Para obtener más información, consulta el archivo [LICENSE](LICENSE).
+Este proyecto se distribuye bajo la **Licencia BSD de 2 cláusulas**.
 
+Consulta el archivo [LICENSE](LICENSE) para más detalles.

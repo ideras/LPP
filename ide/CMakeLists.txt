@@ -21,6 +21,8 @@ RE2C_TARGET(NAME lpp_lexer  INPUT ${PROJECT_SOURCE_DIR}/lpp_lexer.re
                             OPTIONS "--case-insensitive"
                             DEPENDS lpp_highlighter.h
             )
+set_property(SOURCE lpp_highlighter_lexer.cpp PROPERTY SKIP_AUTOGEN ON)
+
 if (UNIX)
     set(LPP_INTERPCTRL_SRC "lpp_interp_ctrl_linux.cpp")
 elseif(WIN32)
