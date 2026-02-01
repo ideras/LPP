@@ -23,32 +23,43 @@ LppInterpResult LppInterpCtrl::execProgram(const QString& prg_name)
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
 
-    QString cmd = QDir::toNativeSeparators(lpp_conf.interp) + QStringLiteral(" --pause --action run ")
-                  + QDir::toNativeSeparators(prg_name);
+    QString exe = QDir::toNativeSeparators(lpp_conf.interp);
+    QString program = QDir::toNativeSeparators(prg_name);
 
-    BOOL success = CreateProcess(NULL,
-                                 const_cast<LPWSTR>(cmd.toStdWString().c_str()),
-                                 NULL,
-                                 NULL,
-                                 FALSE,
-                                 NORMAL_PRIORITY_CLASS|CREATE_NEW_CONSOLE,
-                                 NULL,
-                                 NULL,
-                                 &si,
-                                 &pi);
+    QString cmd = QStringLiteral("\"%1\" --pause --action run \"%2\"")
+                      .arg(exe, program);
+
+    qDebug() << "Running:" << cmd;
+
+    std::wstring cmdLine = cmd.toStdWString();
+
+    BOOL success = CreateProcess(
+        NULL,
+        cmdLine.data(),
+        NULL,
+        NULL,
+        FALSE,
+        NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE,
+        NULL,
+        NULL,
+        &si,
+        &pi
+        );
 
     if (!success) {
+        DWORD err = GetLastError();
+        qDebug() << "CreateProcess failed, error:" << err;
         return LppInterpResult::CannotStartInterp;
     }
 
     h_process = pi.hProcess;
-    h_thread = pi.hThread;
+    h_thread  = pi.hThread;
 
-    //start();
     waiter_thread = std::thread([this]() { this->waitForProcess(); });
 
     return LppInterpResult::Success;
 }
+
 
 void LppInterpCtrl::killProcess()
 {
@@ -61,8 +72,7 @@ void LppInterpCtrl::killProcess()
 
 void LppInterpCtrl::waitForProcess()
 {
-    WaitForSingleObject(h_process, INFINITE);
-
+    WaitForSingleObject(h_process, INFINITE);    
     CloseHandle(h_thread);
     CloseHandle(h_process);
 
