@@ -68,8 +68,7 @@ class LppEditor : public QPlainTextEdit
     Q_OBJECT
 
 public:
-    LppEditor(QWidget *parent = nullptr);
-
+    LppEditor(bool _isDark, QWidget *parent = nullptr);
     void lineNumberAreaPaintEvent(QPaintEvent *event);
     int lineNumberAreaWidth();
     void gotoLine(int line_number);
@@ -83,6 +82,7 @@ private slots:
     void updateLineNumberArea(const QRect &rect, int dy);
 
 private:
+    bool isDark;
     QWidget *line_number_area;
     QColor line_area_backcolor;
     QColor line_area_textcolor;

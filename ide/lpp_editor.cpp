@@ -51,10 +51,11 @@
 #include <QDebug>
 #include <QPainter>
 #include <QTextBlock>
-
+#include <QApplication>
+#include <QStyleHints>
 #include "lpp_editor.h"
 
-LppEditor::LppEditor(QWidget *parent): QPlainTextEdit(parent)
+LppEditor::LppEditor(bool _isDark, QWidget *parent): QPlainTextEdit(parent), isDark(_isDark)
 {
     line_number_area = new LineNumberArea(this);
 
@@ -62,9 +63,22 @@ LppEditor::LppEditor(QWidget *parent): QPlainTextEdit(parent)
     connect(this, &LppEditor::updateRequest, this, &LppEditor::updateLineNumberArea);
     connect(this, &LppEditor::cursorPositionChanged, this, &LppEditor::highlightCurrentLine);
 
-    line_area_backcolor.setRgb(0xef, 0xf0, 0xf1);
-    line_area_textcolor.setRgb(0x80, 0x80, 0x80);
-    sel_line_backcolor.setRgb(0xff, 0xed, 0xe7);
+
+    QApplication *app = qApp;
+    bool isDark = app->styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+
+    if (isDark) {
+        qDebug() << "Running editor with dark mode";
+        line_area_backcolor.setRgb(80,80,80);
+        line_area_textcolor.setRgb(255,255,255);
+        sel_line_backcolor.setRgb(63, 63, 63);
+
+    } else {
+        line_area_backcolor.setRgb(0xef, 0xf0, 0xf1);
+        line_area_textcolor.setRgb(0x80, 0x80, 0x80);
+        sel_line_backcolor.setRgb(0xff, 0xed, 0xe7);
+    }
+
 
     updateLineNumberAreaWidth(0);
     highlightCurrentLine();
