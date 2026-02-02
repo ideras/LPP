@@ -40,6 +40,7 @@ add_executable(${PROJECT_NAME} ${LPP_SRCDIR}/lpp_parser.cpp
                                lpp_terminal.cpp
                                test_serializer.cpp
                                test_file.cpp
+                               test_initializers.cpp
                                test_main.cpp
               )
 

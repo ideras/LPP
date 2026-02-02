@@ -6,13 +6,13 @@
 #include "lpp_lexer.h"
 #include "lpp_ast.h"
 
-class LppParser  
+class LppParser
 {
 public:
     LppParser(LppLexer& lexer)
       : lexer(lexer)
     {}
-    
+
     ~LppParser()
     {}
 
@@ -55,6 +55,10 @@ private:
     Ast::NodeUPtr simpleExpr();
     Ast::NodeUPtr expression();
     Ast::NodeUPtr exprList();
+
+    Ast::NodeUPtr parseRecordField();
+    Ast::NodeUPtr recordFieldList();
+
     Ast::NodeUPtr simpleVariable(const std::optional<std::string>& var);
     Ast::NodeUPtr variable(const std::optional<std::string>& var);
 
@@ -75,7 +79,7 @@ private:
 
 private:
     int safeStringToInt(const std::string& text);
-    
+
     LppLexer& lexer;
     Token token;
 };

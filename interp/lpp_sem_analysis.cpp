@@ -31,7 +31,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::Node *root)
         HANDLE_NODE(WriteFileStmt, root);
         HANDLE_NODE(CloseFileStmt, root);
         HANDLE_NODE(ReturnStmt, root);
-        
+
         // Expressions
         HANDLE_NODE(LtExpr, root);
         HANDLE_NODE(GtExpr, root);
@@ -60,7 +60,12 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::Node *root)
         HANDLE_NODE(CharConstExpr, root);
         HANDLE_NODE(IntConstExpr, root);
         HANDLE_NODE(RealConstExpr, root);
-        
+        HANDLE_NODE(TypedArrayLiteral, root);
+        HANDLE_NODE(InferredArrayLiteral, root);
+        HANDLE_NODE(BareArrayLiteral, root);
+        HANDLE_NODE(LiteralRecordExpr, root);
+        HANDLE_NODE(FieldAssignExpr, root);
+
         case Ast::NodeKind::CaseStmtCondRangeValue:
             return visit(root->cptr<Ast::CaseStmt::CondRangeValue>());
 
@@ -173,7 +178,7 @@ ProcInfo *LppInterp::SemAnalysisVisitor::visit(const Ast::ProcDef *pd)
 
     auto pi = std::make_shared<ProcInfo>(pd->getName(), std::move(params), std::move(vars), rt);
     procs.add(pi->name(), pi);
-   
+
     // Statements
     std::vector<const Ast::Stmt *> stmts;
     for (const auto& s : pd->getStmts()) {
@@ -284,7 +289,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::RelExpr *expr)
     if (!ti1->isEquiv(ti2)) {
         throw LPPException(expr->getSrcLine(), "Tipos de datos no compatibles en operacion relacional");
     }
-    
+
     if (!ti1->isPrimType() && !ti1->is(TIKind::String)) {
             throw LPPException(expr->getSrcLine(),
                                "Las operaciones relacionales son validas para valores enteros, reales, caracter, booleano y cadena");
@@ -588,7 +593,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::LhsExpr *expr)
         v->cptr<Ast::VarRef>()->setRecordTypeInfo(lti->cptr<RecordTypeInfo>());
         visit(v.get());
         TypeInfoSPtr rti = v->cptr<Ast::Expr>()->getTypeInfoSPtr();
-        
+
         it ++;
         lti = rti;
     }
@@ -722,9 +727,9 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::CaseStmt::CondRangeValue* r
     visit(rangev->getValue2());
     const TypeInfo* t1 = rangev->getValue1<Ast::Expr>()->getTypeInfo();
     const TypeInfo* t2 = rangev->getValue2<Ast::Expr>()->getTypeInfo();
-    
+
     if (!t1->isEquiv(t2)) {
-        throw LPPException(rangev->getSrcLine(), "Tipo de datos no compatible en rango de sentencia 'caso'");   
+        throw LPPException(rangev->getSrcLine(), "Tipo de datos no compatible en rango de sentencia 'caso'");
     }
     rangev->setTypeInfo(rangev->getValue1<Ast::Expr>()->getTypeInfoSPtr());
 }
@@ -744,7 +749,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::CaseStmt *stmt)
         for (const auto& cl : cblk.getCondValues()) {
             visit(cl.get());
 
-            const TypeInfo* clti = cl->cptr<Ast::Expr>()->getTypeInfo();            
+            const TypeInfo* clti = cl->cptr<Ast::Expr>()->getTypeInfo();
             if (!lti->isEquiv(clti)) {
                 throw LPPException(cl->getSrcLine(), "Tipo de datos no es compatible con la variable de la sentencia 'caso'");
             }
@@ -812,7 +817,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::ForStmt *stmt)
     if (!lti->isEquiv(ti2)) {
         throw LPPException(stmt->getSrcLine(), "Tipos de datos no compatibles en la segunda expresion del ciclo 'para'");
     }
-    
+
     for (const auto& s : stmt->getStmts()) {
         visit(s.get());
     }
@@ -901,7 +906,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::ReadFileStmt *stmt)
 }
 
 void LppInterp::SemAnalysisVisitor::visit(const Ast::WriteFileStmt *stmt)
-{ 
+{
     auto visit_fhvar = [stmt, this](const Ast::NodeUPtr& n_fhvar) {
         visit(n_fhvar.get());
         const TypeInfo* vti = n_fhvar->cptr<Ast::Expr>()->getTypeInfo();
@@ -972,4 +977,171 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::ReturnStmt *stmt)
             throw LPPException(stmt->getSrcLine(), "Una funcion debe retornar una valor");
         }
     }
+}
+
+void LppInterp::SemAnalysisVisitor::visit(const Ast::TypedArrayLiteral *expr)
+{
+    TypeInfoSPtr ti = visit(expr->getType()->cptr<Ast::Type>());
+
+    if (!ti->is(TIKind::Array)) {
+        throw LPPException(expr->getSrcLine(), "El tipo especificado en el arreglo literal debe ser un arreglo");
+    }
+
+    const ArrayTypeInfo* ati = ti->cptr<ArrayTypeInfo>();
+    const TypeInfo* elem_ti = ati->elemType().get();
+
+    for (const auto& val : expr->getValues()) {
+        visit(val.get());
+        const TypeInfo* val_ti = val->cptr<Ast::Expr>()->getTypeInfo();
+
+        if (!elem_ti->isEquiv(val_ti)) {
+            throw LPPException(expr->getSrcLine(), "El tipo del elemento no coincide con el tipo del arreglo");
+        }
+    }
+
+    size_t total_size = ati->flatSize();
+    if (expr->getValues().getSize() > total_size) {
+         throw LPPException(expr->getSrcLine(), "Demasiados elementos en el inicializador del arreglo");
+    }
+
+    expr->setTypeInfo(ti);
+}
+
+void LppInterp::SemAnalysisVisitor::visit(const Ast::InferredArrayLiteral *expr)
+{
+    auto [dims, elem_type] = visitArrayInitializerList(expr->getValues());
+
+    expr->setTypeInfo(TypeInfo::Array(dims, elem_type));
+}
+
+void LppInterp::SemAnalysisVisitor::visit(const Ast::BareArrayLiteral *expr)
+{
+    auto [dims, elem_type] = visitArrayInitializerList(expr->getValues());
+
+    expr->setTypeInfo(TypeInfo::ArrayInitializer(dims, elem_type));
+}
+
+LppInterp::SemAnalysisVisitor::ArrayInitializerListInfo 
+    LppInterp::SemAnalysisVisitor::visitArrayInitializerList(const Ast::NodeList &init_list)
+{
+    if (init_list.isEmpty()) {
+        throw LPPException(init_list.getSrcLine(), "No se puede inferir el tipo de un arreglo vacio");
+    }
+
+    TypeInfoSPtr check_ti;
+    bool has_array_initializer = false;
+    bool first = true;
+
+    for (const auto& val : init_list) {
+        visit(val.get());
+        const TypeInfoSPtr val_ti = val->cptr<Ast::Expr>()->getTypeInfoSPtr();
+
+        if (first) {
+            has_array_initializer = val_ti->is(TIKind::ArrayInitializer);
+            check_ti = val_ti;
+            first = false;
+        } else if (!check_ti->isEquiv(val_ti.get())) {
+            throw LPPException(init_list.getSrcLine(), "El tipo del elemento no coincide con el tipo del arreglo");
+        }
+    }
+
+    ArrayInitializerListInfo result;
+
+    result.dims.push_back(static_cast<int>(init_list.getSize()));
+    result.element_type = check_ti;
+
+    if (has_array_initializer) {
+        const ArrayInitializerTypeInfo* inner_ati = check_ti->cptr<ArrayInitializerTypeInfo>();
+        result.dims.insert(result.dims.end(), inner_ati->dims().begin(), inner_ati->dims().end());
+
+        result.element_type = inner_ati->elemType();
+    }
+
+    return result;
+}
+
+void LppInterp::SemAnalysisVisitor::visit(const Ast::LiteralRecordExpr *expr)
+{
+    TypeInfoSPtr udt = udts.get(expr->getTypeName());
+    if (udt == nullptr) {
+        throw LPPException(expr->getSrcLine(), "El tipo '" + expr->getTypeName() + "' no ha sido declarado");
+    }
+
+    if (udt->is(TIKind::Alias)) {
+        udt = udt->cptr<AliasTypeInfo>()->aliasType();
+    }
+
+    if (!udt->is(TIKind::Record)) {
+        throw LPPException(expr->getSrcLine(), "El tipo '" + expr->getTypeName() + "' no es un registro");
+    }
+
+    const RecordTypeInfo* rti = udt->cptr<RecordTypeInfo>();
+    const auto& fields = rti->fields();
+
+    std::vector<bool> initialized(fields.size(), false);
+
+    int pos_index = 0;
+    bool using_named = false;
+    bool using_positional = false;
+
+    for (const auto& val_node : expr->getValues()) {
+        visit(val_node.get());
+        const Ast::Expr* val_expr = val_node->cptr<Ast::Expr>();
+
+        if (val_node->getKind() == Ast::NodeKind::FieldAssignExpr) {
+            using_named = true;
+
+            if (using_positional) {
+                throw LPPException(expr->getSrcLine(), "No se puede mezclar inicializacion posicional y nombrada");
+            }
+
+            const Ast::FieldAssignExpr* fa = val_node->cptr<Ast::FieldAssignExpr>();
+            const RecordTypeInfo::FieldInfo* fldi = rti->field(fa->getName());
+
+            if (!fldi) {
+                throw LPPException(fa->getSrcLine(), "El campo '" + fa->getName() + "' no existe en el registro '" + rti->name() + "'");
+            }
+
+            if (initialized[fldi->index()]) {
+                throw LPPException(fa->getSrcLine(), "El campo '" + fa->getName() + "' ya fue inicializado");
+            }
+
+            if (!fldi->typeInfo()->isEquiv(val_expr->getTypeInfo())) {
+                throw LPPException(fa->getSrcLine(), "El tipo del valor no coincide con el campo '" + fa->getName() + "'");
+            }
+
+            initialized[fldi->index()] = true;
+        } else {
+            using_positional = true;
+
+            if (using_named) {
+                throw LPPException(expr->getSrcLine(), "No se puede mezclar inicializacion posicional y nombrada");
+            }
+
+            if (pos_index >= fields.size()) {
+                throw LPPException(expr->getSrcLine(), "Demasiados valores en el inicializador del registro");
+            }
+
+            const auto& fldi = fields[pos_index];
+
+             if (!fldi.typeInfo()->isEquiv(val_expr->getTypeInfo())) {
+                throw LPPException(expr->getSrcLine(), "El tipo del valor no coincide con el campo '" + fldi.name() + "'");
+            }
+
+            initialized[pos_index] = true;
+            pos_index++;
+        }
+    }
+
+    if (using_positional && pos_index < fields.size()) {
+        throw LPPException(expr->getSrcLine(), "Faltan valores en la inicializacion posicional del registro");
+    }
+
+    expr->setTypeInfo(udt);
+}
+
+void LppInterp::SemAnalysisVisitor::visit(const Ast::FieldAssignExpr *expr)
+{
+    visit(expr->getValue());
+    expr->setTypeInfo(expr->getValue()->cptr<Ast::Expr>()->getTypeInfoSPtr());
 }

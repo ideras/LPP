@@ -40,6 +40,16 @@ LppVariant& LppVariant::operator =(const LppVariant& other)
     return *this;
 }
 
+LppVariant& LppVariant::operator =(LppVariant&& other)
+{
+    if (kind() != other.kind()) {
+        destroy();
+    }
+    moveFrom(std::move(other));
+
+    return *this;
+}
+
 Lpp::Int LppVariant::toInt() const
 {
     switch (_kind) {
@@ -198,6 +208,32 @@ void LppVariant::copyFrom(const LppVariant& rhs)
     }
 }
 
+void LppVariant::moveFrom(LppVariant&& val)
+{
+    if (isEmpty()) {
+        init(val.kind());
+    }
+    _kind = val._kind;
+
+    switch (_kind) {
+        case Kind::Bool: as_bool = val.as_bool; break;
+        case Kind::Int: as_int = val.as_int; break;
+        case Kind::Char: as_char = val.as_char; break;
+        case Kind::Real: as_real = val.as_real; break;
+        case Kind::String: as_string = std::move(val.as_string); break;
+        case Kind::Array:
+        case Kind::Record:
+            as_array = std::move(val.as_array);
+            break;
+
+        case Kind::ValPtr: as_val_ptr = val.as_val_ptr; break;
+        case Kind::CharPtr: as_char_ptr = val.as_char_ptr; break;
+
+        default:
+            break;
+    }
+}
+
 LppVariant LppVariant::makeArray(std::vector<LppVariant>&& varray)
 {
     LppVariant val;
@@ -214,6 +250,15 @@ LppVariant LppVariant::makeRecord(std::vector<LppVariant>&& varray)
 
     val._kind = Kind::Record;
     new (&val.as_array) std::vector(std::move(varray));
+
+    return val;
+}
+
+LppVariant LppVariant::defaultValue(const TypeInfo *type_info)
+{
+    LppVariant val;
+
+    val.initValue(type_info);
 
     return val;
 }

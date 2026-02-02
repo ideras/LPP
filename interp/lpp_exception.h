@@ -2,12 +2,17 @@
 #define __LPP_EXCEPTION_H__
 
 #include <string>
+#include <exception>
 #include "lpp_variant.h"
 
-class LPPException
+class LPPException : public std::exception
 {
 public:
     LPPException(int src_line, const std::string& msg);
+
+    const char* what() const noexcept override {
+        return msg.c_str();
+    }
 
     std::string getMessage() const {
         return msg;

@@ -62,6 +62,11 @@ enum class NodeKind {
     CharConstExpr,
     IntConstExpr,
     RealConstExpr,
+    TypedArrayLiteral,
+    InferredArrayLiteral,
+    BareArrayLiteral,
+    LiteralRecordExpr,
+    FieldAssignExpr,
     Stmt,
     AssignStmt,
     CallStmt,
@@ -860,6 +865,101 @@ using IntConstExpr = ConstExpr<NodeKind::IntConstExpr, Lpp::Int>;
 using RealConstExpr = ConstExpr<NodeKind::RealConstExpr, Lpp::Real>;
 using CharConstExpr = ConstExpr<NodeKind::CharConstExpr, Lpp::Char>;
 using StrConstExpr = ConstExpr<NodeKind::StrConstExpr, std::string>;
+
+class ArrayInitializer : public Expr
+{
+public:
+    ArrayInitializer(NodeUPtr&& values)
+        : values(std::move(values))
+    {}
+
+    const NodeList& getValues() const
+    { return values->cref<NodeList>(); }
+
+protected:
+    NodeUPtr values;
+};
+
+class TypedArrayLiteral : public ArrayInitializer
+{
+public:
+    TypedArrayLiteral(NodeUPtr&& type_def, NodeUPtr&& values)
+        : ArrayInitializer(std::move(values)), type_def(std::move(type_def))
+    {}
+
+    NodeKind getKind() const override
+    { return NodeKind::TypedArrayLiteral; }
+
+    const Node* getType() const
+    { return type_def.get(); }
+
+private:
+    NodeUPtr type_def;
+};
+
+class InferredArrayLiteral : public ArrayInitializer
+{
+public:
+    InferredArrayLiteral(NodeUPtr&& values)
+        : ArrayInitializer(std::move(values))
+    {}
+
+    NodeKind getKind() const override
+    { return NodeKind::InferredArrayLiteral; }
+};
+
+class BareArrayLiteral : public ArrayInitializer
+{
+public:
+    BareArrayLiteral(NodeUPtr&& values)
+        : ArrayInitializer(std::move(values))
+    {}
+
+    NodeKind getKind() const override
+    { return NodeKind::BareArrayLiteral; }
+};
+
+class LiteralRecordExpr: public Expr
+{
+public:
+    LiteralRecordExpr(const std::string& type_name, NodeUPtr&& values)
+        : type_name(type_name), values(std::move(values))
+    {}
+
+    NodeKind getKind() const override
+    { return NodeKind::LiteralRecordExpr; }
+
+    std::string getTypeName() const
+    { return type_name; }
+
+    const NodeList& getValues() const
+    { return values->cref<NodeList>(); }
+
+private:
+    std::string type_name;
+    NodeUPtr values;
+};
+
+class FieldAssignExpr: public Expr
+{
+public:
+    FieldAssignExpr(const std::string& name, NodeUPtr&& value)
+        : name(name), value(std::move(value))
+    {}
+
+    NodeKind getKind() const override
+    { return NodeKind::FieldAssignExpr; }
+
+    std::string getName() const
+    { return name; }
+
+    const Node* getValue() const
+    { return value.get(); }
+
+private:
+    std::string name;
+    NodeUPtr value;
+};
 
 class Stmt: public Node
 {

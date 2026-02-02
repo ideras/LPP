@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <functional>
 #include <stdexcept>
 #include <unordered_set>
 #include "lpp_interp.h"
@@ -110,6 +111,11 @@ LppVariant LppInterp::AstVisitor::visit(const Ast::Node *root)
         HANDLE_EXPR_NODE(CharConstExpr, root);
         HANDLE_EXPR_NODE(IntConstExpr, root);
         HANDLE_EXPR_NODE(RealConstExpr, root);
+        HANDLE_EXPR_NODE(TypedArrayLiteral, root);
+        HANDLE_EXPR_NODE(InferredArrayLiteral, root);
+        HANDLE_EXPR_NODE(BareArrayLiteral, root);
+        HANDLE_EXPR_NODE(LiteralRecordExpr, root);
+        HANDLE_EXPR_NODE(FieldAssignExpr, root);
         default:
             throw std::runtime_error("Invalid statement kind '" + root->kindName() + "' in Statement visitor");
     }
@@ -368,7 +374,7 @@ LppVariant LppInterp::AstVisitor::visit(const Ast::LhsExpr *expr)
 LppVariant LppInterp::AstVisitor::visit(const Ast::IndexVar *expr, LppVariant &parent_val)
 {
     LppVariant lval = visit(expr->getVarExpr<Ast::VarRef>(), parent_val);
-    
+
     std::vector<int> idxs;
     for (const auto& eidx : expr->getIndexes()) {
         LppVariant eval = visit(eidx.get());
@@ -404,7 +410,7 @@ LppVariant LppInterp::AstVisitor::visit(const Ast::SimpleVar *expr, LppVariant& 
     if (expr->getRecordTypeInfo()) {
         const RecordTypeInfo* rti = expr->getRecordTypeInfo();
         const RecordTypeInfo::FieldInfo* fldi = rti->field(expr->getName());
-        
+
         return std::addressof(parent_val.arrayRef().at(fldi->index()));
     } else {
         LppVarSPtr var (nullptr);
@@ -571,9 +577,9 @@ void LppInterp::AstVisitor::visit(const Ast::ForStmt *stmt)
     LppVariant val1 = visit(stmt->getExpr1());
 
     lval.setPointedValue(val1.toInt());
-    
+
     LppVariant val2 = visit(stmt->getExpr2());
-    
+
     while (lval.toInt() <= val2.toInt()) {
         for (const auto& s : stmt->getStmts()) {
             visit(s->cptr<Ast::Stmt>());
@@ -611,7 +617,7 @@ void LppInterp::AstVisitor::visit(const Ast::WriteStmt *stmt)
 {
     for (const auto& expr : stmt->getExprList()) {
         LppVariant val = visit(expr.get());
-        
+
         if (val.isInt()) {
             term.writeInt(val.toInt());
         } else if (val.isReal()) {
@@ -853,4 +859,111 @@ void LppInterp::semAnalysis(const Ast::Node *prg_node)
     for (const auto& stmt : prg->getStmts()) {
         visitor.visit(stmt.get());
     }
+}
+
+static void flattenArray(const LppVariant& v, std::vector<LppVariant>& out) {
+    if (v.isArray()) {
+        for (const auto& inner : v.arrayCRef()) {
+            flattenArray(inner, out);
+        }
+    } else {
+        out.push_back(v);
+    }
+}
+
+LppVariant LppInterp::AstVisitor::visit(const Ast::TypedArrayLiteral *expr)
+{
+    std::vector<LppVariant> elements;
+    for (const auto& val : expr->getValues()) {
+        elements.push_back(visit(val.get()));
+    }
+
+    const ArrayTypeInfo* ati = expr->getTypeInfo()->cptr<ArrayTypeInfo>();
+    size_t total_size = ati->flatSize();
+
+    while (elements.size() < total_size) {
+        const TypeInfo* elem_ti = ati->elemType().get();
+
+        elements.push_back(LppVariant::defaultValue(elem_ti));
+    }
+
+    return LppVariant::makeArray(std::move(elements));
+}
+
+LppVariant LppInterp::AstVisitor::visit(const Ast::InferredArrayLiteral *expr)
+{
+    std::vector<LppVariant> elements;
+    for (const auto& val : expr->getValues()) {
+        elements.push_back(visit(val.get()));
+    }
+
+    const ArrayTypeInfo* ati = expr->getTypeInfo()->cptr<ArrayTypeInfo>();
+
+    bool needs_flattening = (ati->dims().size() > 1) && !elements.empty() && elements[0].isArray();
+
+    if (needs_flattening) {
+        std::vector<LppVariant> flat_elements;
+        for (const auto& el : elements) {
+            flattenArray(el, flat_elements);
+        }
+        elements = std::move(flat_elements);
+    }
+
+    return LppVariant::makeArray(std::move(elements));
+}
+
+LppVariant LppInterp::AstVisitor::visit(const Ast::BareArrayLiteral *expr)
+{
+    std::vector<LppVariant> elements;
+    for (const auto& val : expr->getValues()) {
+        elements.push_back(visit(val.get()));
+    }
+
+    const ArrayTypeInfo* ati = expr->getTypeInfo()->cptr<ArrayTypeInfo>();
+
+    bool needs_flattening = (ati->dims().size() > 1) && !elements.empty() && elements[0].isArray();
+
+    if (needs_flattening) {
+        std::vector<LppVariant> flat_elements;
+        for (const auto& el : elements) {
+            flattenArray(el, flat_elements);
+        }
+        elements = std::move(flat_elements);
+    }
+
+    return LppVariant::makeArray(std::move(elements));
+}
+
+LppVariant LppInterp::AstVisitor::visit(const Ast::LiteralRecordExpr *expr)
+{
+    const RecordTypeInfo* rti = expr->getTypeInfo()->cptr<RecordTypeInfo>();
+    size_t field_count = rti->fields().size();
+
+    std::vector<LppVariant> fields(field_count);
+
+    for (size_t i = 0; i < field_count; ++i) {
+        const TypeInfo* fti = rti->fields()[i].typeInfo().get();
+        fields[i].initValue(fti);
+    }
+
+    int pos_index = 0;
+    for (const auto& val_node : expr->getValues()) {
+        if (val_node->getKind() == Ast::NodeKind::FieldAssignExpr) {
+            const Ast::FieldAssignExpr* fa = val_node->cptr<Ast::FieldAssignExpr>();
+            LppVariant val = visit(fa);
+
+            const RecordTypeInfo::FieldInfo* fldi = rti->field(fa->getName());
+            fields[fldi->index()] = val;
+        } else {
+            LppVariant val = visit(val_node.get());
+            fields[pos_index++] = val;
+        }
+    }
+
+    return LppVariant::makeRecord(std::move(fields));
+}
+
+LppVariant LppInterp::AstVisitor::visit(const Ast::FieldAssignExpr *expr)
+{
+    return visit(expr->getValue());
 }

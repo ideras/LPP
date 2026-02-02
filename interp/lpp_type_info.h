@@ -20,7 +20,7 @@ public:
     static TypeInfoSPtr Bool;
 
     enum class Kind
-    { Int, Real, Char, Bool, String, Array, Record, Alias, File };
+    { Int, Real, Char, Bool, String, Array, ArrayInitializer, Record, Alias, File };
 
     TypeInfo(): TypeInfo(0, true)
     {}
@@ -63,6 +63,7 @@ public:
     { return reinterpret_cast<T *>(this); }
 
     static TypeInfoSPtr String(int size = 0);
+    static TypeInfoSPtr ArrayInitializer(const std::vector<int>& dims, const TypeInfoSPtr& elem_type);
     static TypeInfoSPtr Array(const std::vector<int>& dims, const TypeInfoSPtr& elem_type);
     static TypeInfoSPtr BinaryFile(const TypeInfoSPtr& elem_type);
     static TypeInfoSPtr TextFile;
@@ -138,6 +139,29 @@ public:
 
     bool isEquiv(const TypeInfo *rhs) const override
     { return rhs->is(Kind::String) || rhs->is(Kind::Char); }
+};
+
+class ArrayInitializerTypeInfo: public TypeInfo
+{
+public:
+    ArrayInitializerTypeInfo(const std::vector<int>& _dims, const TypeInfoSPtr& elem_type)
+        : _dims(_dims), elem_type(elem_type)
+    {}
+
+    const std::vector<int>& dims() const
+    { return _dims; }
+
+    TypeInfoSPtr elemType() const
+    { return elem_type; }
+
+    Kind kind() const override
+    { return Kind::ArrayInitializer; }
+
+    bool isEquiv(const TypeInfo *rhs) const override;
+
+private:
+    std::vector<int> _dims;
+    TypeInfoSPtr elem_type;
 };
 
 class ArrayTypeInfo: public TypeInfo

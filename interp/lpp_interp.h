@@ -31,7 +31,7 @@ private:
     {
         friend class LppInterp;
         using TIKind = TypeInfo::Kind;
-    
+
     public:
         SemAnalysisVisitor(SymbolTable<LppVar>& vars, SymbolTable<TypeInfo>& udts,
                    SymbolTable<ProcInfo>& procs)
@@ -41,7 +41,13 @@ private:
         void visit(const Ast::Node *root);
 
     private:
-        // Ast declaration visitor       
+        struct ArrayInitializerListInfo
+        {
+            std::vector<int> dims;
+            TypeInfoSPtr element_type;
+        };
+
+        // Ast declaration visitor
         void visit(const Ast::SubtypeDef *sd);
         void visit(const Ast::RecordDef *rd);
         void visit(const Ast::VarDecl *vd);
@@ -83,6 +89,12 @@ private:
         void visit(const Ast::CharConstExpr *expr);
         void visit(const Ast::IntConstExpr *expr);
         void visit(const Ast::RealConstExpr *expr);
+        void visit(const Ast::TypedArrayLiteral *expr);
+        void visit(const Ast::InferredArrayLiteral *expr);
+        void visit(const Ast::BareArrayLiteral *expr);
+        ArrayInitializerListInfo visitArrayInitializerList(const Ast::NodeList& init_list);
+        void visit(const Ast::LiteralRecordExpr *expr);
+        void visit(const Ast::FieldAssignExpr *expr);
         void visit(const Ast::CaseStmt::CondRangeValue* rangev);
 
         // Ast Statement visitor
@@ -124,7 +136,7 @@ private:
     private:
         LppVariant getCaseValue(const Ast::Expr *vexpr);
         std::vector<CaseLiteral> getCaseLiterals(const Ast::NodeList& literal_list);
-        
+
         // Ast Expression visitor
         std::tuple<LppVariant, LppVariant> visit(const Ast::BinaryExpr *expr);
         LppVariant visit(const Ast::VarRef *expr, LppVariant& parent_val);
@@ -150,6 +162,11 @@ private:
         LppVariant visit(const Ast::CharConstExpr *expr);
         LppVariant visit(const Ast::IntConstExpr *expr);
         LppVariant visit(const Ast::RealConstExpr *expr);
+        LppVariant visit(const Ast::TypedArrayLiteral *expr);
+        LppVariant visit(const Ast::InferredArrayLiteral *expr);
+        LppVariant visit(const Ast::BareArrayLiteral *expr);
+        LppVariant visit(const Ast::LiteralRecordExpr *expr);
+        LppVariant visit(const Ast::FieldAssignExpr *expr);
 
         // Ast Statement visitor
         void visit(const Ast::AssignStmt *stmt);

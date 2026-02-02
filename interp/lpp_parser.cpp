@@ -44,7 +44,7 @@ Ast::NodeUPtr LppParser::typeDef()
             std::string text = expect(Token::Ident, "Se esperaba un identificador");
 
             expect(Token::KwEs, "Se esperaba la palabra 'es'");
-            
+
             Ast::NodeUPtr type_n = type();
 
             Ast::NodeUPtr t = std::make_unique<Ast::SubtypeDef>(text, std::move(type_n));
@@ -57,11 +57,11 @@ Ast::NodeUPtr LppParser::typeDef()
 
             std::string text = expect(Token::Ident, "Se esperaba un identificador");
             expectEOL();
-            
+
             Ast::NodeUPtr decls = declarations();
 
             expect(Token::KwFinRegistro, "Se esperaba la palabra 'fin registro'");
-            
+
             Ast::NodeUPtr t = std::make_unique<Ast::RecordDef>(text, std::move(decls));
             t->setSrcLine(srcline);
 
@@ -170,7 +170,7 @@ Ast::NodeUPtr LppParser::type()
 
         expect(Token::CloseBracket, "Se esperaba ']'");
         expect(Token::KwDe, "Se esperaba la palabra 'de'");
-        
+
         Ast::NodeUPtr elem_type = type();
 
         tn = std::make_unique<Ast::ArrayType>(std::move(dims), std::move(elem_type));
@@ -185,7 +185,7 @@ Ast::NodeUPtr LppParser::type()
         }
         else if (tokenIs(Token::KwDe)) {
             token = lexer.getNextToken();
-            
+
             Ast::NodeUPtr type_n = type();
 
             tn = std::make_unique<Ast::BinFileType>(std::move(type_n));
@@ -211,21 +211,14 @@ Ast::NodeUPtr LppParser::identifierList()
 {
     Ast::StrList::Items ids;
 
-    if (token != Token::Ident) {
-        throw LPPException(lexer.getLine(), "Se esperaba un identificador");
-    }
-    ids.push_back(lexer.getText());
+    std::string text = expect(Token::Ident, "Se esperaba un identificador");
+    ids.push_back(text);
 
-    token = lexer.getNextToken();
     while (tokenIs(Token::Comma)) {
         token = lexer.getNextToken();
 
-        if (token != Token::Ident) {
-            throw LPPException(lexer.getLine(), "Se esperaba un identificador");
-        }
-        ids.push_back(lexer.getText());
-
-        token = lexer.getNextToken();
+        text = expect(Token::Ident, "Se esperaba un identificador");
+        ids.push_back(text);
     }
 
     return std::make_unique<Ast::StrList>(std::move(ids));
@@ -235,13 +228,13 @@ Ast::NodeUPtr LppParser::parse()
 {
     token = lexer.getNextToken();
     skipOptionalEOL();
-    
+
     Ast::NodeUPtr type_defs = typeDefinitions();
-    
+
     Ast::NodeUPtr var_decls = declarations();
 
     Ast::NodeUPtr proc_decls = procDeclarations();
-    
+
     Ast::NodeUPtr stmts = compoundBlock();
 
     return std::make_unique<Ast::Program>(std::move(type_defs), std::move(var_decls),
@@ -258,7 +251,7 @@ Ast::NodeUPtr LppParser::procDeclarations()
 
         token = lexer.getNextToken();
         std::string name = expect(Token::Ident, "Se esperaba un identificador");
-        
+
         Ast::NodeUPtr param_defs = parameterDeclarations();
 
         Ast::NodeUPtr ret_type(nullptr);
@@ -269,9 +262,9 @@ Ast::NodeUPtr LppParser::procDeclarations()
         }
 
         expectEOL();
-        
+
         Ast::NodeUPtr var_decls = declarations();
-        
+
         Ast::NodeUPtr stmts = compoundBlock();
 
         skipEOL();
@@ -292,7 +285,7 @@ Ast::NodeUPtr LppParser::parameterDeclarations()
 {
     if (tokenIs(Token::OpenPar)) {
         token = lexer.getNextToken();
-        
+
         Ast::NodeUPtr param_defs = parameterList();
 
         expect(Token::ClosePar, "Se esperaba ')'");
@@ -313,7 +306,7 @@ Ast::NodeUPtr LppParser::parameterList()
 
     while (tokenIs(Token::Comma)) {
         token = lexer.getNextToken();
-        
+
         param_def = parameterDecl();
         param_defs.push_back(std::move(param_def));
     }
@@ -330,7 +323,7 @@ Ast::NodeUPtr LppParser::parameterDecl()
 
         token = lexer.getNextToken();
     }
-    
+
     Ast::NodeUPtr param_type = type();
 
     std::string param_name = expect(Token::Ident, "Se esperaba un identificador");
@@ -344,7 +337,7 @@ Ast::NodeUPtr LppParser::expression()
 
     if (tokenIs(Token::OpRel)) {
         std::string s_oper = expect(Token::OpRel, "");
-        
+
         Ast::NodeUPtr expr2 = simpleExpr();
         if (s_oper.compare("<") == 0)
             return std::make_unique<Ast::LtExpr>(std::move(expr1), std::move(expr2));
@@ -399,7 +392,7 @@ Ast::NodeUPtr LppParser::term()
     while (tokenIs(Token::OpMult, Token::OpDiv, Token::OpIDiv, Token::OpMod, Token::OpBoolAnd)) {
         Token oper = token;
         token = lexer.getNextToken();
-        
+
         Ast::NodeUPtr expr2 = power();
 
         switch (oper) {
@@ -432,7 +425,7 @@ Ast::NodeUPtr LppParser::power()
 
     while (tokenIs(Token::OpPow)) {
         token = lexer.getNextToken();
-        
+
         Ast::NodeUPtr expr2 = power();
 
         expr1 = std::make_unique<Ast::PowExpr>(std::move(expr1), std::move(expr2));
@@ -441,9 +434,90 @@ Ast::NodeUPtr LppParser::power()
     return expr1;
 }
 
+Ast::NodeUPtr LppParser::parseRecordField()
+{
+    if (tokenIs(Token::Ident)) {
+        LexerState state = lexer.getCurrentState();
+
+        std::string name = expect(Token::Ident, ""); // Consume Identifier
+
+        if (tokenIs(Token::Colon)) {
+            token = lexer.getNextToken(); // Consume Colon
+            Ast::NodeUPtr val = expression();
+            return std::make_unique<Ast::FieldAssignExpr>(name, std::move(val));
+        }
+
+        lexer.setCurrentState(state);
+    }
+
+    return expression();
+}
+
+Ast::NodeUPtr LppParser::recordFieldList()
+{
+    Ast::NodeList::Items exprs;
+
+    if (tokenIs(Token::Ident, Token::IntConst, Token::RealConst, Token::OpenPar, Token::OpSub, Token::KWNo, Token::StrLiteral, Token::CharLiteral, Token::KwArreglo, Token::KwVerdadero, Token::KwFalso))
+    {
+        Ast::NodeUPtr expr_n = parseRecordField();
+        exprs.push_back(std::move(expr_n));
+
+        while (tokenIs(Token::Comma)) {
+            token = lexer.getNextToken();
+
+            expr_n = parseRecordField();
+            exprs.push_back(std::move(expr_n));
+        }
+    }
+
+    return std::make_unique<Ast::NodeList>(std::move(exprs));
+}
+
 Ast::NodeUPtr LppParser::factor()
 {
     int srcline = lexer.getLine();
+
+    if (tokenIs(Token::KwArreglo)) {
+        LexerState state = lexer.getCurrentState();
+        Token next = lexer.getNextToken();
+
+        if (next == Token::OpenBrace) {
+            token = lexer.getNextToken(); // Consume {
+
+            Ast::NodeUPtr values = exprList();
+            expect(Token::CloseBrace, "Se esperaba '}'");
+
+            auto expr = std::make_unique<Ast::InferredArrayLiteral>(std::move(values));
+            expr->setSrcLine(srcline);
+
+            return expr;
+        }
+
+        lexer.setCurrentState(state);
+
+        Ast::NodeUPtr type_def = type();
+
+        expect(Token::OpenBrace, "Se esperaba '{'");
+        Ast::NodeUPtr values = exprList();
+        expect(Token::CloseBrace, "Se esperaba '}'");
+
+        auto expr = std::make_unique<Ast::TypedArrayLiteral>(std::move(type_def), std::move(values));
+        expr->setSrcLine(srcline);
+
+        return expr;
+    }
+
+    if (tokenIs(Token::OpenBrace)) {
+        token = lexer.getNextToken(); // Consume {
+
+        Ast::NodeUPtr values = exprList();
+        expect(Token::CloseBrace, "Se esperaba '}'");
+
+        auto expr = std::make_unique<Ast::BareArrayLiteral>(std::move(values));
+        expr->setSrcLine(srcline);
+
+        return expr;
+    }
 
     if (tokenIs(Token::Ident)) {
         std::string text = lexer.getText();
@@ -452,8 +526,8 @@ Ast::NodeUPtr LppParser::factor()
 
         if (tokenIs(Token::OpenPar)) {
             token = lexer.getNextToken();
-                    
-                    Ast::NodeUPtr expr_list = exprList();
+
+            Ast::NodeUPtr expr_list = exprList();
             expect(Token::ClosePar, "Se esperaba ')'");
 
             auto expn = std::make_unique<Ast::FuncCallExpr>(text, std::move(expr_list));
@@ -461,11 +535,22 @@ Ast::NodeUPtr LppParser::factor()
 
             return expn;
         }
+        else if (tokenIs(Token::OpenBrace)) {
+            token = lexer.getNextToken();
+
+            Ast::NodeUPtr values = recordFieldList();
+            expect(Token::CloseBrace, "Se esperaba '}'");
+
+            auto expr = std::make_unique<Ast::LiteralRecordExpr>(text, std::move(values));
+            expr->setSrcLine(srcline);
+
+            return expr;
+        }
         else {
             return variable(text);
         }
     }
-    
+
     if (tokenIs(Token::KwVerdadero, Token::KwFalso))
     {
         bool val = tokenIs(Token::KwVerdadero)? true : false;
@@ -553,7 +638,7 @@ Ast::NodeUPtr LppParser::variable(const std::optional<std::string>& var)
     }
 
     Ast::NodeUPtr var_list = std::make_unique<Ast::NodeList>(std::move(var_items));
-    
+
     return std::make_unique<Ast::LhsExpr>(std::move(var_list));
 }
 
@@ -594,7 +679,7 @@ Ast::NodeUPtr LppParser::exprList()
 {
     Ast::NodeList::Items exprs;
 
-    if (tokenIs(Token::Ident, Token::IntConst, Token::RealConst, Token::OpenPar, Token::OpSub, Token::KWNo, Token::StrLiteral, Token::CharLiteral))
+    if (tokenIs(Token::Ident, Token::IntConst, Token::RealConst, Token::OpenPar, Token::OpSub, Token::KWNo, Token::StrLiteral, Token::CharLiteral, Token::KwArreglo, Token::KwVerdadero, Token::KwFalso, Token::OpenBrace))
     {
         Ast::NodeUPtr expr_n = expression();
         exprs.push_back(std::move(expr_n));
@@ -614,7 +699,7 @@ Ast::NodeUPtr LppParser::compoundBlock()
 {
     expect(Token::KwInicio, "Se esperaba la palabra 'inicio'");
     expectEOL();
-    
+
     Ast::NodeUPtr stmts = statementList();
 
     expect(Token::KwFin, "Se esperaba la palabra 'fin'");
@@ -713,7 +798,7 @@ Ast::NodeUPtr LppParser::ifStmt()
         skipOptionalEOL();
         expect(Token::KwEntonces, "Se esperaba la palabra 'entonces'");
         expectEOL();
-        
+
         Ast::NodeUPtr stmts = statementList();
         Ast::NodeUPtr cond_block =
                 std::make_unique<Ast::IfStmt::CondBlock>(std::move(cond), std::move(stmts));
@@ -728,7 +813,7 @@ Ast::NodeUPtr LppParser::ifStmt()
                 continue;
             }
             expectEOL();
-            
+
             else_stmts = statementList();
         }
         break;
@@ -771,7 +856,7 @@ Ast::NodeUPtr LppParser::caseStmt()
 
         expect(Token::Colon, "Se esperaban ':'");
         skipOptionalEOL();
-        
+
         Ast::NodeUPtr stmts = statementList();
         Ast::NodeUPtr cond_blk =
                                 std::make_unique<Ast::CaseStmt::CondBlock>(
@@ -786,7 +871,7 @@ Ast::NodeUPtr LppParser::caseStmt()
 
             expect(Token::Colon, "Se esperaban ':'");
             skipOptionalEOL();
-            
+
             else_stmts = statementList();
 
             expect(Token::KwFinCaso, "Se esperaba 'fin caso'");
@@ -863,7 +948,7 @@ Ast::NodeUPtr LppParser::whileStmt()
     Ast::NodeUPtr cond = expression();
     expect(Token::KwHaga, "Se esperaba la palabra 'haga'");
     expectEOL();
-    
+
     Ast::NodeUPtr stmts = statementList();
 
     expect(Token::KwFinMientras, "Se esperaba 'fin mientras'");
@@ -877,7 +962,7 @@ Ast::NodeUPtr LppParser::repeatStmt()
 {
     token = lexer.getNextToken();
     expectEOL();
-    
+
     Ast::NodeUPtr stmts = statementList();
     expect(Token::KwHasta, "Se esperaba la palabra 'hasta'");
 
@@ -898,7 +983,7 @@ Ast::NodeUPtr LppParser::callStmt()
     Ast::NodeUPtr args;
     if (tokenIs(Token::OpenPar)) {
         token = lexer.getNextToken();
-        
+
         args = exprList();
 
         expect(Token::ClosePar, "Se esperaba ')'");
@@ -1147,7 +1232,7 @@ std::string LppParser::expect(Token tk, const std::string &message)
     std::string text = lexer.getText();
 
     if (token != tk)
-        throw LPPException(lexer.getLine(), message);
+        throw LPPException(lexer.getLine(), message + ", se encontró '" + text + "'");
 
     token = lexer.getNextToken();
 

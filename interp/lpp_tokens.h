@@ -9,7 +9,7 @@ enum class Token {
     KwFinSi, KwMientras, KwHaga, KwFinMientras, KwPara, KwHasta, KwFinPara, KwRepita, KwCaso, KwFinCaso,
     KwLlamar, KwInicio, KwFin, KwLea, KwEscriba, KWRetorne, KwAbrir, KwComo, KwLectura, KwEscritura,
     KwCerrar, KwLeer, KwEscribir, KwVerdadero, KwFalso, Ident,
-    EndOfLine, OpenBracket, CloseBracket, OpenPar, ClosePar, Comma, Colon, Dot, RangeInd,
+    EndOfLine, OpenBracket, CloseBracket, OpenPar, ClosePar, OpenBrace, CloseBrace, Comma, Colon, Dot, RangeInd,
     OpAssign, OpRel, OpBoolOr, OpBoolAnd, OpAdd, OpSub, OpMult, OpDiv, OpIDiv, OpMod, OpPow,
     StrLiteral, CharLiteral, IntConst, RealConst, Eof, Unkown
 };

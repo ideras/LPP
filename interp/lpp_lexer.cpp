@@ -79,7 +79,7 @@ constexpr std::array<TKeyword, 50> keywords = {
 
 Token LppLexer::getNextToken()
 {	int ch, ch2;
-    
+
     text = "";
     while(1)
     {	ch = nextChar();
@@ -87,7 +87,7 @@ Token LppLexer::getNextToken()
         if (ch == ' ' || ch == '\t') {
             continue;
         }
-        
+
         text += static_cast<char>(ch);
 
         if (ch == '/')
@@ -108,7 +108,7 @@ Token LppLexer::getNextToken()
 							break;
 						if (ch2==EOF)
                             throw LPPException(src_line, "Comentario no cerrado");
-                        
+
                         ungetChar(ch2);
 					}
                     else if (ch2 == '\n') {
@@ -135,11 +135,13 @@ Token LppLexer::getNextToken()
 
         if (ch == '\n') {
             src_line ++;
+            if (brace_depth > 0) continue;
             return Token::EndOfLine;
         } else if (ch == '\r') {
             ch = nextChar();
             if (ch == '\n') {
                 src_line++;
+                if (brace_depth > 0) continue;
                 return Token::EndOfLine;
             }
             ungetChar(ch);
@@ -153,12 +155,12 @@ Token LppLexer::getNextToken()
                 text += static_cast<char>(ch);
                 ch = nextChar();
             }
-            
+
             std::string lbuffer = str::lower(text);
             if (lbuffer.compare("fin") == 0 && ch == ' ')
             {
                 std::string str;
-                
+
                 while ((ch = nextChar()) == ' ');
 
 				str = "";
@@ -174,10 +176,10 @@ Token LppLexer::getNextToken()
                     text += str;
                 }
 			}
-			
+
             if (ch != EOF)
                 ungetChar(ch);
-            
+
             lbuffer = str::lower(text);
             for (const auto& keyword : keywords)
             {
@@ -185,7 +187,7 @@ Token LppLexer::getNextToken()
                     return keyword.value;
                 }
 			}
-            
+
             if (text.find_first_of(' ') != std::string::npos)
 				return Token::Unkown;
 
@@ -196,7 +198,7 @@ Token LppLexer::getNextToken()
             text = "";
             while ((ch=nextChar()) != '"' && ch != '\n' && ch != EOF)
                 text += static_cast<char>(ch);
-			
+
             if (ch == '\n' || ch == EOF)
                 throw LPPException(src_line, "Falta '\"' en la cadena");
 
@@ -207,10 +209,10 @@ Token LppLexer::getNextToken()
             text = "";
             while ((ch=nextChar()) != '\'' && ch != '\n' && ch != EOF)
                 text += static_cast<char>(ch);
-			
+
             if (ch == '\n' || ch == EOF)
                 throw LPPException(src_line, "Se esperaba '\''");
-            
+
             if (text.length() != 1)
                 throw LPPException(src_line, "La longitud de las literales tipo caracter debe ser 1");
 
@@ -237,7 +239,7 @@ Token LppLexer::getNextToken()
                 text += static_cast<char>(ch);
 			else
                 ungetChar(ch);
-            
+
             if (text == "<-")
 				return Token::OpAssign;
 			else
@@ -249,7 +251,7 @@ Token LppLexer::getNextToken()
         {
             bool dot = false;
             text = "";
-			
+
 			DIGITOS;
 
 			if (ch == '.')
@@ -257,7 +259,7 @@ Token LppLexer::getNextToken()
                 dot = true;
                 text += static_cast<char>(ch);
                 ch = nextChar();
-				
+
 				DIGITOS;
 			}
 			if (ch == 'E' || ch == 'e')
@@ -305,6 +307,14 @@ Token LppLexer::getNextToken()
 			return Token::OpenBracket;
 		else if (ch==']')
 			return Token::CloseBracket;
+        else if (ch=='{') {
+            brace_depth++;
+            return Token::OpenBrace;
+        }
+        else if (ch=='}') {
+            if (brace_depth > 0) brace_depth--;
+            return Token::CloseBrace;
+        }
 		else if (ch==EOF)
 			return Token::Eof;
 		else

@@ -38,6 +38,16 @@ void RecordTypeInfo::updateRecordInfo()
     }
 }
 
+bool ArrayInitializerTypeInfo::isEquiv(const TypeInfo *rhs) const
+{
+    if (!rhs->is(Kind::ArrayInitializer)) {
+        return false;
+    }
+    const ArrayInitializerTypeInfo *aiti = rhs->cptr<ArrayInitializerTypeInfo>();
+
+    return (_dims == aiti->_dims) && (elem_type->isEquiv(aiti->elemType().get()));
+}
+
 bool ArrayTypeInfo::isEquiv(const TypeInfo *rhs) const
 {
     if (!rhs->is(Kind::Array)) {
@@ -89,6 +99,11 @@ std::string TypeInfo::kindName() const
 TypeInfoSPtr TypeInfo::String(int size)
 {
     return std::make_shared<StringTypeInfo>(size);
+}
+
+TypeInfoSPtr TypeInfo::ArrayInitializer(const std::vector<int>& dims, const TypeInfoSPtr& elem_type)
+{
+    return std::make_shared<ArrayInitializerTypeInfo>(dims, elem_type);
 }
 
 TypeInfoSPtr TypeInfo::Array(const std::vector<int>& dims, const TypeInfoSPtr &elem_type)

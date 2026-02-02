@@ -45,10 +45,14 @@ public:
     LppVariant(const LppVariant& other): _kind(Kind::Empty)
     { copyFrom(other); }
 
+    LppVariant(LppVariant&& other): _kind(Kind::Empty)
+    { moveFrom(std::move(other)); }
+
     ~LppVariant()
     { destroy(); }
 
     LppVariant& operator= (const LppVariant& other);
+    LppVariant& operator= (LppVariant&& other);
 
     Kind kind() const
     { return _kind; }
@@ -137,6 +141,7 @@ public:
 
     static LppVariant makeArray(std::vector<LppVariant>&& varray);
     static LppVariant makeRecord(std::vector<LppVariant>&& varray);
+    static LppVariant defaultValue(const TypeInfo *type_info);
 
 private:
     LppVariant(Kind _type): _kind(_type)
@@ -144,6 +149,7 @@ private:
 
     void init(Kind k);
     void copyFrom(const LppVariant& val);
+    void moveFrom(LppVariant&& val);
     void destroy();
 
 private:
