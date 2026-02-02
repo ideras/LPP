@@ -23,7 +23,7 @@ TEST_CASE("Array Initializer") {
     
     LppInterp interp;
     oss.str(""); // Clear output
-    REQUIRE_NOTHROW(interp.exec(prg.get()));
+    REQUIRE_NOTHROW(interp.execute(std::move(prg)));
     REQUIRE(oss.str() == "102030");
 }
 
@@ -49,7 +49,7 @@ TEST_CASE("Record Initializer Positional") {
     
     LppInterp interp;
     oss.str("");
-    REQUIRE_NOTHROW(interp.exec(prg.get()));
+    REQUIRE_NOTHROW(interp.execute(std::move(prg)));
     REQUIRE(oss.str() == "1Juan");
 }
 
@@ -75,7 +75,7 @@ TEST_CASE("Record Initializer Named") {
     
     LppInterp interp;
     oss.str("");
-    REQUIRE_NOTHROW(interp.exec(prg.get()));
+    REQUIRE_NOTHROW(interp.execute(std::move(prg)));
     REQUIRE(oss.str() == "2Maria");
 }
 
@@ -103,7 +103,7 @@ TEST_CASE("Nested Initializers") {
     
     LppInterp interp;
     oss.str("");
-    REQUIRE_NOTHROW(interp.exec(prg.get()));
+    REQUIRE_NOTHROW(interp.execute(std::move(prg)));
     REQUIRE(oss.str() == "1234");
 }
 
@@ -123,7 +123,7 @@ TEST_CASE("Array Initializer Inferred") {
     
     LppInterp interp;
     oss.str("");
-    REQUIRE_NOTHROW(interp.exec(prg.get()));
+    REQUIRE_NOTHROW(interp.execute(std::move(prg)));
     REQUIRE(oss.str() == "102030");
 }
 
@@ -143,7 +143,7 @@ TEST_CASE("Array Of Array Inferred") {
     
     LppInterp interp;
     oss.str("");
-    REQUIRE_NOTHROW(interp.exec(prg.get()));
+    REQUIRE_NOTHROW(interp.execute(std::move(prg)));
     REQUIRE(oss.str() == "1234");
 }
 
@@ -163,7 +163,7 @@ TEST_CASE("MultiDim Array Explicit") {
     
     LppInterp interp;
     oss.str("");
-    REQUIRE_NOTHROW(interp.exec(prg.get()));
+    REQUIRE_NOTHROW(interp.execute(std::move(prg)));
     REQUIRE(oss.str() == "1234");
 }
 
@@ -183,7 +183,7 @@ TEST_CASE("MultiDim Array Inferred Type Mismatch") {
     LppInterp interp;
     oss.str("");
     try {
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         REQUIRE(false); // Should throw
     } catch (const std::exception& e) {
         REQUIRE(std::string(e.what()).find("Tipos de datos no compatibles en asignacion") != std::string::npos);
@@ -206,7 +206,7 @@ TEST_CASE("MultiDim Array Inferred Simplified") {
     
     LppInterp interp;
     oss.str("");
-    REQUIRE_NOTHROW(interp.exec(prg.get()));
+    REQUIRE_NOTHROW(interp.execute(std::move(prg)));
     REQUIRE(oss.str() == "1234");
 }
 
@@ -224,7 +224,7 @@ TEST_CASE("Empty Inferred Array Failure") {
     LppInterp interp;
     
     try {
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         REQUIRE(false);
     } catch (const LPPException& e) {
         REQUIRE(e.getMessage() == "No se puede inferir el tipo de un arreglo vacio");
@@ -245,7 +245,7 @@ TEST_CASE("Empty Bare Array Failure") {
     LppInterp interp;
     
     try {
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         REQUIRE(false);
     } catch (const LPPException& e) {
         REQUIRE(e.getMessage() == "No se puede inferir el tipo de un arreglo vacio");
@@ -266,7 +266,7 @@ TEST_CASE("Inferred Array Type Mismatch Failure") {
     LppInterp interp;
     
     try {
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         REQUIRE(false);
     } catch (const LPPException& e) {
         REQUIRE(e.getMessage() == "El tipo del elemento no coincide con el tipo del arreglo");
@@ -287,7 +287,7 @@ TEST_CASE("Typed Array Type Mismatch Failure") {
     LppInterp interp;
     
     try {
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         REQUIRE(false);
     } catch (const LPPException& e) {
         REQUIRE(e.getMessage() == "El tipo del elemento no coincide con el tipo del arreglo");
@@ -308,7 +308,7 @@ TEST_CASE("Typed Array Size Mismatch Failure") {
     LppInterp interp;
     
     try {
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         REQUIRE(false);
     } catch (const LPPException& e) {
         REQUIRE(e.getMessage() == "Demasiados elementos en el inicializador del arreglo");
@@ -332,7 +332,7 @@ TEST_CASE("Record Mixed Init Failure") {
     LppInterp interp;
     
     try {
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         REQUIRE(false);
     } catch (const LPPException& e) {
         REQUIRE(e.getMessage() == "No se puede mezclar inicializacion posicional y nombrada");
@@ -356,7 +356,7 @@ TEST_CASE("Record Invalid Field Failure") {
     LppInterp interp;
     
     try {
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         REQUIRE(false);
     } catch (const LPPException& e) {
         REQUIRE(e.getMessage() == "El campo 'b' no existe en el registro 'P'");

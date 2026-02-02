@@ -233,13 +233,17 @@ Ast::NodeUPtr LppParser::parse()
 
     Ast::NodeUPtr var_decls = declarations();
 
-    Ast::NodeUPtr proc_decls = procDeclarations();
+        Ast::NodeUPtr proc_decls = procDeclarations();
 
-    Ast::NodeUPtr stmts = compoundBlock();
+        Ast::NodeUPtr stmts;
+        if (tokenIs(Token::KwInicio)) {
+            stmts = compoundBlock();
+        } else {
+            stmts = std::make_unique<Ast::NodeList>();
+        }
 
-    return std::make_unique<Ast::Program>(std::move(type_defs), std::move(var_decls),
-                                          std::move(proc_decls), std::move(stmts));
-}
+        return std::make_unique<Ast::Program>(std::move(type_defs), std::move(var_decls),
+                                              std::move(proc_decls), std::move(stmts));}
 
 Ast::NodeUPtr LppParser::procDeclarations()
 {
@@ -1231,8 +1235,10 @@ std::string LppParser::expect(Token tk, const std::string &message)
 {
     std::string text = lexer.getText();
 
-    if (token != tk)
+    if (token != tk) {
+        text = lexer.describeToken(token);
         throw LPPException(lexer.getLine(), message + ", se encontró '" + text + "'");
+    }
 
     token = lexer.getNextToken();
 

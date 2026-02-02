@@ -16,6 +16,10 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::Node *root)
         HANDLE_NODE(RecordDef, root);
         HANDLE_NODE(VarDecl, root);
 
+        case Ast::NodeKind::ProcDef:
+            visit(root->cptr<Ast::ProcDef>());
+            return;
+
         // Statements
         HANDLE_NODE(AssignStmt, root);
         HANDLE_NODE(IfStmt, root);

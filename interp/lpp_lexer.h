@@ -56,6 +56,8 @@ public:
     LexerState getCurrentState() const
     { return LexerState(in.tellg(), src_line, brace_depth, text); }
 
+    std::string describeToken(Token tk);
+
 private:
     void ungetChar(int ch);
     int nextChar();

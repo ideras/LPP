@@ -47,6 +47,12 @@ add_executable(${PROJECT_NAME} lpp_parser.cpp
                                lpp_serializer.cpp
                                lpp_types.h
                                lpp_tokens.h
+                               project_manager/lpp_project.h
+                               project_manager/lpp_project.cpp
+                               project_manager/lpp_project_parser.h
+                               project_manager/lpp_project_parser.cpp
+                               project_manager/lpp_project_loader.h
+                               project_manager/lpp_project_loader.cpp
                                main.cpp
               )
 

@@ -249,7 +249,7 @@ TEST_CASE("Binary file of Integer 01") {
     LppInterp interp;
     try {
         file_map["test.bin"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         file_map.clear();
     } catch (const LPPException& ex) {
         std::cerr << "Linea " << ex.getSrcLine() << ": " << ex.getMessage() << '\n';
@@ -269,7 +269,7 @@ TEST_CASE("Binary file of Integer 02") {
     LppInterp interp;
     try {
         file_map["test.bin"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
 
         std::string content = file_map["test.bin"]; 
         CHECK(toHexString(content) == "810300005a010000d90c0000");
@@ -292,7 +292,7 @@ TEST_CASE("Binary file of Integer 03") {
     LppInterp interp;
     try {
         file_map["test.bin"] = std::string("\x81\x03\x00\x00\x5a\x01\x00\x00\xd9\x0c\x00\x00", sizeof(Lpp::Int)*3);
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         file_map.clear();
 
         REQUIRE( oss.str() == "8973463289");
@@ -314,7 +314,7 @@ TEST_CASE("Binary file of Array(Integer) 04") {
     LppInterp interp;
     try {
         file_map["test.bin"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         
         std::string content = file_map["test.bin"]; 
         CHECK(toHexString(content) == "53000000590000003c00000031000000220000005000000019000000420000002a00000016000000");
@@ -337,7 +337,7 @@ TEST_CASE("Binary file of Record 05") {
     LppInterp interp;
     try {
         file_map["test.bin"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         
         std::string content = file_map["test.bin"]; 
         CHECK(toHexString(content) == "a92600006e861bf0f9210940"
@@ -364,7 +364,7 @@ TEST_CASE("Binary file of Array(Integer) 06") {
     LppInterp interp;
     try {
         file_map["test.bin"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         
         std::string content = file_map["test.bin"]; 
         CHECK(toHexString(content) == "53000000590000003c00000031000000220000005000000019000000420000002a00000016000000");
@@ -387,7 +387,7 @@ TEST_CASE("Binary file of Record with Array 07") {
     LppInterp interp;
     try {
         file_map["test.bin"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         
         std::string content = file_map["test.bin"]; 
         CHECK(toHexString(content) == "a9260000"
@@ -414,7 +414,7 @@ TEST_CASE("Text file 01") {
     try {
         file_map.clear();
         file_map["test.txt"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
     } catch (const LPPException& ex) {
         std::cerr << "Linea " << ex.getSrcLine() << ": " << ex.getMessage() << '\n';
         REQUIRE(false);
@@ -434,7 +434,7 @@ TEST_CASE("Text file 02") {
     try {
         file_map.clear();
         file_map["test.txt"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         CHECK(file_map["test.txt"] == "897\n346\n3289\n");
     } catch (const LPPException& ex) {
         std::cerr << "Linea " << ex.getSrcLine() << ": " << ex.getMessage() << '\n';
@@ -454,7 +454,7 @@ TEST_CASE("Text file 03") {
 
     try {
         file_map["test.txt"] = "897\n346\n3289\n";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         REQUIRE( oss.str() == "8973463289");
     } catch (const LPPException& ex) {
         std::cerr << "Linea " << ex.getSrcLine() << ": " << ex.getMessage() << '\n';
@@ -475,7 +475,7 @@ TEST_CASE("Text file 04") {
     try {
         file_map.clear();
         file_map["test.txt"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         CHECK(file_map["test.txt"] == "[ 83, 89, 60, 49, 34, 80, 25, 66, 42, 22 ]\n");
     } catch (const LPPException& ex) {
         std::cerr << "Linea " << ex.getSrcLine() << ": " << ex.getMessage() << '\n';
@@ -502,7 +502,7 @@ TEST_CASE("Text file 05") {
     try {
         file_map.clear();
         file_map["test.txt"] = "";
-        interp.exec(prg.get());
+        interp.execute(std::move(prg));
         CHECK(file_map["test.txt"] == "{ 897, 3.14159, [ 83, 89, 60, 49, 34, 80, 25, 66, 42, 22 ], \"Esta es una cadena\" }\n");
     } catch (const LPPException& ex) {
         std::cerr << "Linea " << ex.getSrcLine() << ": " << ex.getMessage() << '\n';

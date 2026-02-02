@@ -33,6 +33,8 @@ add_executable(${PROJECT_NAME} ${LPP_SRCDIR}/lpp_parser.cpp
                                ${LPP_SRCDIR}/lpp_symb_table.h
                                ${LPP_SRCDIR}/lpp_terminal.h
                                ${LPP_SRCDIR}/str_util.h
+                               ${LPP_SRCDIR}/project_manager/lpp_project_parser.cpp
+                               ${LPP_SRCDIR}/project_manager/lpp_project_loader.cpp
                                serializer_helper.h
                                serializer_helper.cpp
                                lpp_filemanager.cpp
@@ -41,6 +43,8 @@ add_executable(${PROJECT_NAME} ${LPP_SRCDIR}/lpp_parser.cpp
                                test_serializer.cpp
                                test_file.cpp
                                test_initializers.cpp
+                               test_project.cpp
+                               test_multi_file.cpp
                                test_main.cpp
               )
 

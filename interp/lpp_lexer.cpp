@@ -322,6 +322,16 @@ Token LppLexer::getNextToken()
     }
 }
 
+std::string LppLexer::describeToken(Token tk)
+{
+    if (tk == Token::EndOfLine)
+        return "<fin de linea>";
+    else if (tk == Token::Eof)
+        return "<fin de archivo>";
+    else
+        return text;
+}
+
 void LppLexer::ungetChar(int ch)
 {
     in.putback(ch);

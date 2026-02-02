@@ -15,6 +15,7 @@
 #include "lpp_runtime.h"
 #include "lpp_filemanager.h"
 #include "lpp_terminal.h"
+#include "project_manager/lpp_project.h"
 
 class LppInterp
 {
@@ -23,8 +24,14 @@ public:
       : var_map(), udt_map(), proc_map(), term(nullptr)
     {}
 
-    void exec(const Ast::Node* prg_node);
-    void semAnalysis(const Ast::Node* prg_node);
+    void execute(const LppProject& project);
+    void execute(std::unique_ptr<Ast::Node> prg_node);
+    void semanticAnalysis(const LppProject& project);
+
+private:
+    void registerGlobals(const std::vector<ParsedFile>& parser_files);
+    void semAnalysisAll(const std::vector<ParsedFile>& parser_files, const std::string& entryPoint);
+    void executeEntryPoint(const std::string& entryPoint, const std::vector<ParsedFile>& parser_files);
 
 private:
     class SemAnalysisVisitor

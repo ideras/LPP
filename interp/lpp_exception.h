@@ -9,6 +9,7 @@ class LPPException : public std::exception
 {
 public:
     LPPException(int src_line, const std::string& msg);
+    LPPException(int src_line, const std::string& filename, const std::string& msg);
 
     const char* what() const noexcept override {
         return msg.c_str();
@@ -22,8 +23,17 @@ public:
         return src_line;
     }
 
+    std::string getFilename() const {
+        return filename;
+    }
+
+    void setFilename(const std::string& _filename) {
+        filename = _filename;
+    }
+
 private:
     int src_line;
+    std::string filename;
     std::string msg;
 };
 

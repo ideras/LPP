@@ -1,10 +1,19 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-#include "lpp_parser.h"
-#include "lpp_lexer.h"
+#include <filesystem>
 #include "lpp_interp.h"
 #include "lpp_exception.h"
+#include "project_manager/lpp_project_parser.h"
+
+namespace fs = std::filesystem;
+
+void reportError(const LPPException& ex) {
+    if (!ex.getFilename().empty()) {
+        std::cerr << "Archivo '" << ex.getFilename() << "', ";
+    }
+    std::cerr << "Linea " << ex.getSrcLine() << ": " << ex.getMessage() << '\n';
+}
 
 void usage(const char *progname) {
     std::cerr << "Uso: " << progname << " [ --pause ] --action (run | compile) <programa fuente de LPP>\n"
@@ -50,32 +59,33 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::ifstream in(filepath, std::ios::binary | std::ios::in);
-
-    if (!in.is_open()) {
-        std::cerr << "No se puedo abrir el archivo '" << filepath << " '\n";
-        return 2; 
-    }
-
-    LppLexer lexer(in);
-    LppParser parser(lexer);
+    int ret_code = 0;
 
     try {
-        Ast::NodeUPtr prg = parser.parse();
+        LppProject project;
+
+        if (fs::path(filepath).extension() == ".lppprj") {
+            project = LppProjectParser::parse(filepath);
+        } else {
+            project = LppProject::fromSingleFile(filepath);
+        }
 
         LppInterp interp;
 
         if (action == 0) {
-            interp.semAnalysis(prg.get());
+            interp.semanticAnalysis(project);
             std::cout << "Programa compila con exito.\n";
         } else {
-            interp.exec(prg.get());
+            interp.execute(project);
         }
     } catch (const LPPException& ex) {
-        std::cerr << "Linea " << ex.getSrcLine() << ": " << ex.getMessage() << '\n';
-        in.close();
-        return 3;
+        reportError(ex);
+        ret_code = 3;
+    } catch (const std::exception& ex) {
+        std::cerr << "Error: " << ex.what() << '\n';
+        ret_code = 4;
     }
+
     if (pause) {
         std::string s;
 
@@ -83,6 +93,5 @@ int main(int argc, char *argv[])
         std::getline(std::cin, s);
     }
 
-    in.close();
-    return 0;
+    return ret_code;
 }

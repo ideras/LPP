@@ -101,6 +101,12 @@ public:
     const std::vector<const Ast::Stmt *>& stmts() const
     { return _stmts; }
 
+    void setOriginFile(const std::string& file)
+    { origin_file = file; }
+
+    std::string originFile() const
+    { return origin_file; }
+
     bool isBuiltin() const
     { return is_builtin; }
 
@@ -114,6 +120,7 @@ private:
     std::vector<Variable> _vars;
     TypeInfoSPtr ret_type;
     std::vector<const Ast::Stmt *> _stmts;
+    std::string origin_file;
     bool is_builtin;
 };
 

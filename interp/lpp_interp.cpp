@@ -6,6 +6,8 @@
 #include "lpp_interp.h"
 #include "lpp_serializer.h"
 #include "lpp_exception.h"
+#include "project_manager/lpp_project_parser.h"
+#include "project_manager/lpp_project_loader.h"
 
 struct BiProcInfo
 {
@@ -805,59 +807,131 @@ std::vector<LppInterp::AstVisitor::CaseLiteral> LppInterp::AstVisitor::getCaseLi
     return values;
 }
 
-void LppInterp::exec(const Ast::Node *prg_node)
+void LppInterp::execute(const LppProject& project)
 {
-    if (prg_node->getKind() != Ast::NodeKind::Program) {
-        throw std::runtime_error("Invalid program node '" + prg_node->toString() + "'");
-    }
-    semAnalysis(prg_node);
+    std::vector<ParsedFile> parsed_files = LppProjectLoader::load(project);
 
+    registerGlobals(parsed_files);
+    semAnalysisAll(parsed_files, project.entryPoint);
+    executeEntryPoint(project.entryPoint, parsed_files);
+}
+
+void LppInterp::execute(std::unique_ptr<Ast::Node> prg_node)
+{
+    std::vector<ParsedFile> asts;
+    asts.emplace_back("memory", std::move(prg_node));
+
+    registerGlobals(asts);
+    semAnalysisAll(asts, "memory");
+    executeEntryPoint("memory", asts);
+}
+
+void LppInterp::semanticAnalysis(const LppProject& project)
+{
+    std::vector<ParsedFile> parser_files = LppProjectLoader::load(project);
+
+    registerGlobals(parser_files);
+    semAnalysisAll(parser_files, project.entryPoint);
+}
+
+void LppInterp::registerGlobals(const std::vector<ParsedFile>& parser_files)
+{
+    LppInterp::SemAnalysisVisitor visitor(var_map, udt_map, proc_map);
+    loadBuiltinProcs();
+
+    for (const auto& pfile : parser_files) {
+        const auto* prg = pfile.ast->cptr<Ast::Program>();
+
+        try {
+            for (const auto& td : prg->getTypeDefs()) {
+                visitor.visit(td.get());
+            }
+
+            for (const auto& vd : prg->getVarDecls()) {
+                visitor.visit(vd.get());
+            }
+
+            for (const auto& pd : prg->getProcDecls()) {
+                ProcInfo* pi = visitor.visit(pd->cptr<Ast::ProcDef>());
+                pi->setOriginFile(pfile.filename);
+            }
+        } catch (LPPException& e) {
+            e.setFilename(pfile.filename);
+            throw;
+        }
+    }
+}
+
+void LppInterp::semAnalysisAll(const std::vector<ParsedFile>& parser_files, const std::string& entryPoint)
+{
+    LppInterp::SemAnalysisVisitor visitor(var_map, udt_map, proc_map);
+
+    // Visit all procedure bodies
+    for (auto& proc_pair : proc_map.items()) {
+        const ProcInfo* pi = proc_pair.second.get();
+        if (!pi->isBuiltin()) {
+            try {
+                visitor.visitProcStmts(pi);
+            } catch (LPPException& e) {
+                if (e.getFilename().empty()) e.setFilename(pi->originFile());
+                throw;
+            }
+        }
+    }
+
+    // Visit main blocks
+    for (const auto& pfile : parser_files) {
+        const auto* prg = pfile.ast->cptr<Ast::Program>();
+
+        try {
+            if (pfile.filename == entryPoint) {
+                for (const auto& stmt : prg->getStmts()) {
+                    visitor.visit(stmt.get());
+                }
+            } else {
+                if (!prg->getStmts().isEmpty()) {
+                    throw LPPException(prg->getStmts().items()[0]->getSrcLine(),
+                        "Archivo '" + pfile.filename + "' no es el Principal y contiene sentencias fuera de procedimientos");
+                }
+            }
+        } catch (LPPException& e) {
+            if (e.getFilename().empty()) e.setFilename(pfile.filename);
+            throw;
+        }
+    }
+}
+
+void LppInterp::executeEntryPoint(const std::string& entryPoint, const std::vector<ParsedFile>& parser_files)
+{
+    // Initialize global variables
     for (auto& vp : var_map.items()) {
         LppVarSPtr& var = vp.second;
         var->createValue();
     }
 
-    const auto *prg = prg_node->cptr<Ast::Program>();
+    // Find entry point AST
+    const Ast::Program* entryAst = nullptr;
+    for (const auto& pfile : parser_files) {
+        if (pfile.filename == entryPoint) {
+            entryAst = pfile.ast->cptr<Ast::Program>();
+            break;
+        }
+    }
+
+    if (!entryAst) {
+        throw std::runtime_error("No se encontro el archivo Principal: " + entryPoint);
+    }
 
     term = std::make_unique<Terminal>();
     LppInterp::AstVisitor visitor(var_map, udt_map, proc_map, *term);
 
-    for (const auto& stmt : prg->getStmts()) {
-        visitor.visit(stmt.get());
-    }
-}
-
-void LppInterp::semAnalysis(const Ast::Node *prg_node)
-{
-    if (prg_node->getKind() != Ast::NodeKind::Program) {
-        throw std::runtime_error("Invalid program node '" + prg_node->toString() + "'");
-    }
-    const auto *prg = prg_node->cptr<Ast::Program>();
-
-    LppInterp::SemAnalysisVisitor visitor(var_map, udt_map, proc_map);
-
-    loadBuiltinProcs();
-    for (const auto& td : prg->getTypeDefs()) {
-        visitor.visit(td.get());
-    }
-
-    for (const auto& vd : prg->getVarDecls()) {
-        visitor.visit(vd.get());
-    }
-
-    std::vector<const ProcInfo *> procs;
-    for (const auto& pd : prg->getProcDecls()) {
-        const Ast::ProcDef *proc_def = pd->cptr<Ast::ProcDef>();
-
-        const ProcInfo* pi = visitor.visit(proc_def);
-        procs.push_back(pi);
-    }
-    for (const auto pi : procs) {
-        visitor.visitProcStmts(pi);
-    }
-
-    for (const auto& stmt : prg->getStmts()) {
-        visitor.visit(stmt.get());
+    try {
+        for (const auto& stmt : entryAst->getStmts()) {
+            visitor.visit(stmt.get());
+        }
+    } catch (LPPException& e) {
+        if (e.getFilename().empty()) e.setFilename(entryPoint);
+        throw;
     }
 }
 
