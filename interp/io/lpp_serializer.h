@@ -11,7 +11,7 @@ public:
     using Kind = LppVariant::Kind;
     LppSerializer();
 
-    static std::string toString(const LppVariant& val);
+    static std::string toString(const LppVariant& val, const TypeInfo* typei = nullptr);
     static LppVariant fromString(const std::string& str);
     static std::vector<char> toBinary(const LppVariant& val, const TypeInfoSPtr& typei);
     static bool fromBinary(LppVariant &val, const TypeInfo *typei, const std::vector<char>& bytes);
@@ -74,6 +74,7 @@ private:
 private:
     static std::string arrayToString(const LppVariant& val);
     static std::string recordToString(const LppVariant& val);
+    static std::string multiDimArrayToString(const LppVariant& val, const ArrayTypeInfo* ati);
 };
 
 #endif // LPPVARIANTSERIALIZER_H

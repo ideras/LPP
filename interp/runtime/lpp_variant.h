@@ -51,8 +51,8 @@ public:
     ~LppVariant()
     { destroy(); }
 
-    LppVariant& operator= (const LppVariant& other);
-    LppVariant& operator= (LppVariant&& other);
+    LppVariant& operator= (const LppVariant& other) noexcept;
+    LppVariant& operator= (LppVariant&& other) noexcept;
 
     Kind kind() const
     { return _kind; }

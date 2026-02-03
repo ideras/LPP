@@ -10,9 +10,9 @@ LppSerializer::LppSerializer()
 
 }
 
-std::string LppSerializer::toString(const LppVariant& val)
+std::string LppSerializer::toString(const LppVariant& val, const TypeInfo* typei)
 {
-    switch (val.kind()) {
+    switch (val.valueKind()) {
         case Kind::Bool: return val.toBool()? "Verdadero" : "Falso";
         case Kind::Int: return std::to_string(val.toInt());
         case Kind::Char: return "'" + std::string(1, val.toChar()) + "'";
@@ -24,7 +24,14 @@ std::string LppSerializer::toString(const LppVariant& val)
             return oss.str();
         }
 
-        case Kind::Array: return arrayToString(val);
+        case Kind::Array:
+            if (typei && typei->is(TypeInfo::Kind::Array)) {
+                const ArrayTypeInfo* ati = typei->cptr<ArrayTypeInfo>();
+                if (ati->dims().size() > 1) {
+                    return multiDimArrayToString(val, ati);
+                }
+            }
+            return arrayToString(val);
         case Kind::Record: return recordToString(val);
 
         default:
@@ -485,4 +492,28 @@ LppVariant LppSerializer::Parser::parseRecord()
     tk = lex.nextToken();
 
     return LppVariant::makeRecord(std::move(varray));
+}
+
+static void printMultiDim(std::ostringstream& oss, const std::vector<LppVariant>& data, const std::vector<int>& dims, int dimIndex, int& dataIndex)
+{
+    oss << "[ ";
+    int count = dims[dimIndex];
+    for (int i = 0; i < count; ++i) {
+        if (i > 0) oss << ", ";
+
+        if (dimIndex == dims.size() - 1) {
+            oss << LppSerializer::toString(data[dataIndex++]);
+        } else {
+            printMultiDim(oss, data, dims, dimIndex + 1, dataIndex);
+        }
+    }
+    oss << " ]";
+}
+
+std::string LppSerializer::multiDimArrayToString(const LppVariant& val, const ArrayTypeInfo* ati)
+{
+    std::ostringstream oss;
+    int dataIndex = 0;
+    printMultiDim(oss, val.arrayCRef(), ati->dims(), 0, dataIndex);
+    return oss.str();
 }

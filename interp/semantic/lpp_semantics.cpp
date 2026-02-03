@@ -65,7 +65,6 @@ private:
     void visit(const Ast::CharConstExpr *expr);
     void visit(const Ast::IntConstExpr *expr);
     void visit(const Ast::RealConstExpr *expr);
-    void visit(const Ast::TypedArrayLiteral *expr);
     void visit(const Ast::InferredArrayLiteral *expr);
     void visit(const Ast::BareArrayLiteral *expr);
     ArrayInitializerListInfo visitArrayInitializerList(const Ast::NodeList& init_list);
@@ -162,7 +161,6 @@ void LppSemantics::SemAnalysisVisitor::visit(const Ast::Node *root)
         HANDLE_NODE(CharConstExpr, root);
         HANDLE_NODE(IntConstExpr, root);
         HANDLE_NODE(RealConstExpr, root);
-        HANDLE_NODE(TypedArrayLiteral, root);
         HANDLE_NODE(InferredArrayLiteral, root);
         HANDLE_NODE(BareArrayLiteral, root);
         HANDLE_NODE(LiteralRecordExpr, root);
@@ -940,7 +938,7 @@ void LppSemantics::SemAnalysisVisitor::visit(const Ast::WriteStmt *stmt)
         visit(expr.get());
 
         const TypeInfo* ti = expr->cptr<Ast::EqExpr>()->getTypeInfo();
-        if (!ti->is(TIKind::Int, TIKind::Real, TIKind::Char, TIKind::Bool, TIKind::String)) {
+        if (!ti->is(TIKind::Int, TIKind::Real, TIKind::Char, TIKind::Bool, TIKind::String, TIKind::Array, TIKind::Record)) {
             throw LPPException(stmt->getSrcLine(), "No se puede escribir variables de tipo " + ti->kindName());
         }
     }
@@ -1076,34 +1074,6 @@ void LppSemantics::SemAnalysisVisitor::visit(const Ast::ReturnStmt *stmt)
             throw LPPException(stmt->getSrcLine(), "Una funcion debe retornar una valor");
         }
     }
-}
-
-void LppSemantics::SemAnalysisVisitor::visit(const Ast::TypedArrayLiteral *expr)
-{
-    TypeInfoSPtr ti = visit(expr->getType()->cptr<Ast::Type>());
-    
-    if (!ti->is(TIKind::Array)) {
-        throw LPPException(expr->getSrcLine(), "El tipo especificado en el arreglo literal debe ser un arreglo");
-    }
-
-    const ArrayTypeInfo* ati = ti->cptr<ArrayTypeInfo>();
-    const TypeInfo* elem_ti = ati->elemType().get();
-
-    for (const auto& val : expr->getValues()) {
-        visit(val.get());
-        const TypeInfo* val_ti = val->cptr<Ast::Expr>()->getTypeInfo();
-
-        if (!elem_ti->isEquiv(val_ti)) {
-            throw LPPException(expr->getSrcLine(), "El tipo del elemento no coincide con el tipo del arreglo");
-        }
-    }
-    
-    size_t total_size = ati->flatSize();
-    if (expr->getValues().getSize() > total_size) {
-         throw LPPException(expr->getSrcLine(), "Demasiados elementos en el inicializador del arreglo");
-    }
-    
-    expr->setTypeInfo(ti);
 }
 
 void LppSemantics::SemAnalysisVisitor::visit(const Ast::InferredArrayLiteral *expr)

@@ -30,7 +30,7 @@ void LppVariant::destroy()
     _kind = Kind::Empty;
 }
 
-LppVariant& LppVariant::operator =(const LppVariant& other)
+LppVariant& LppVariant::operator =(const LppVariant& other) noexcept
 {
     if (kind() != other.kind()) {
         destroy();
@@ -40,7 +40,7 @@ LppVariant& LppVariant::operator =(const LppVariant& other)
     return *this;
 }
 
-LppVariant& LppVariant::operator =(LppVariant&& other)
+LppVariant& LppVariant::operator =(LppVariant&& other) noexcept
 {
     if (kind() != other.kind()) {
         destroy();

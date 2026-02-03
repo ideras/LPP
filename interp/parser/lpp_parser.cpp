@@ -481,47 +481,45 @@ Ast::NodeUPtr LppParser::factor()
 {
     int srcline = lexer.getLine();
 
-    if (tokenIs(Token::KwArreglo)) {
-        LexerState state = lexer.getCurrentState();
-        Token next = lexer.getNextToken();
+        if (tokenIs(Token::KwArreglo)) {
 
-        if (next == Token::OpenBrace) {
-            token = lexer.getNextToken(); // Consume {
+            token = lexer.getNextToken(); // Consume Arreglo
+
+            expect(Token::OpenBracket, "Se esperaba '['");
+
+
 
             Ast::NodeUPtr values = exprList();
-            expect(Token::CloseBrace, "Se esperaba '}'");
+
+            expect(Token::CloseBracket, "Se esperaba ']'");
+
+
 
             auto expr = std::make_unique<Ast::InferredArrayLiteral>(std::move(values));
+
             expr->setSrcLine(srcline);
 
             return expr;
+
         }
 
-        lexer.setCurrentState(state);
+        if (tokenIs(Token::OpenBracket)) {
 
-        Ast::NodeUPtr type_def = type();
+            token = lexer.getNextToken(); // Consume [
 
-        expect(Token::OpenBrace, "Se esperaba '{'");
-        Ast::NodeUPtr values = exprList();
-        expect(Token::CloseBrace, "Se esperaba '}'");
+            Ast::NodeUPtr values = exprList();
 
-        auto expr = std::make_unique<Ast::TypedArrayLiteral>(std::move(type_def), std::move(values));
-        expr->setSrcLine(srcline);
+            expect(Token::CloseBracket, "Se esperaba ']'");
 
-        return expr;
-    }
 
-    if (tokenIs(Token::OpenBrace)) {
-        token = lexer.getNextToken(); // Consume {
 
-        Ast::NodeUPtr values = exprList();
-        expect(Token::CloseBrace, "Se esperaba '}'");
+            auto expr = std::make_unique<Ast::BareArrayLiteral>(std::move(values));
 
-        auto expr = std::make_unique<Ast::BareArrayLiteral>(std::move(values));
-        expr->setSrcLine(srcline);
+            expr->setSrcLine(srcline);
 
-        return expr;
-    }
+            return expr;
+
+        }
 
     if (tokenIs(Token::Ident)) {
         std::string text = lexer.getText();
@@ -683,7 +681,7 @@ Ast::NodeUPtr LppParser::exprList()
 {
     Ast::NodeList::Items exprs;
 
-    if (tokenIs(Token::Ident, Token::IntConst, Token::RealConst, Token::OpenPar, Token::OpSub, Token::KWNo, Token::StrLiteral, Token::CharLiteral, Token::KwArreglo, Token::KwVerdadero, Token::KwFalso, Token::OpenBrace))
+    if (tokenIs(Token::Ident, Token::IntConst, Token::RealConst, Token::OpenPar, Token::OpSub, Token::KWNo, Token::StrLiteral, Token::CharLiteral, Token::KwArreglo, Token::KwVerdadero, Token::KwFalso, Token::OpenBrace, Token::OpenBracket))
     {
         Ast::NodeUPtr expr_n = expression();
         exprs.push_back(std::move(expr_n));

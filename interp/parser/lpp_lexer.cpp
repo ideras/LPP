@@ -135,13 +135,13 @@ Token LppLexer::getNextToken()
 
         if (ch == '\n') {
             src_line ++;
-            if (brace_depth > 0) continue;
+            if (brace_depth > 0 || bracket_depth > 0) continue;
             return Token::EndOfLine;
         } else if (ch == '\r') {
             ch = nextChar();
             if (ch == '\n') {
                 src_line++;
-                if (brace_depth > 0) continue;
+                if (brace_depth > 0 || bracket_depth > 0) continue;
                 return Token::EndOfLine;
             }
             ungetChar(ch);
@@ -303,10 +303,14 @@ Token LppLexer::getNextToken()
 			return Token::OpenPar;
 		else if (ch==')')
 			return Token::ClosePar;
-		else if (ch=='[')
+		else if (ch=='[') {
+            bracket_depth++;
 			return Token::OpenBracket;
-		else if (ch==']')
+        }
+		else if (ch==']') {
+            if (bracket_depth > 0) bracket_depth--;
 			return Token::CloseBracket;
+        }
         else if (ch=='{') {
             brace_depth++;
             return Token::OpenBrace;

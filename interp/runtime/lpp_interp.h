@@ -75,7 +75,6 @@ private:
         LppVariant visit(const Ast::CharConstExpr *expr);
         LppVariant visit(const Ast::IntConstExpr *expr);
         LppVariant visit(const Ast::RealConstExpr *expr);
-        LppVariant visit(const Ast::TypedArrayLiteral *expr);
         LppVariant visit(const Ast::InferredArrayLiteral *expr);
         LppVariant visit(const Ast::BareArrayLiteral *expr);
         LppVariant visit(const Ast::LiteralRecordExpr *expr);

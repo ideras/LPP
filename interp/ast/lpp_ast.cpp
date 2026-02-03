@@ -54,7 +54,6 @@ std::string Node::kindName() const
         case NodeKind::CharConstExpr: return "CharConstExpr";
         case NodeKind::IntConstExpr: return "IntConstExpr";
         case NodeKind::RealConstExpr: return "RealConstExpr";
-        case NodeKind::TypedArrayLiteral: return "TypedArrayLiteral";
         case NodeKind::InferredArrayLiteral: return "InferredArrayLiteral";
         case NodeKind::BareArrayLiteral: return "BareArrayLiteral";
         case NodeKind::LiteralRecordExpr: return "LiteralRecordExpr";

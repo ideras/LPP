@@ -14,16 +14,18 @@ struct LexerState
     LexerState()
     {}
 
-    LexerState(std::streampos pos, int line, int brace_depth, const std::string& text)
+    LexerState(std::streampos pos, int line, int brace_depth, int bracket_depth, const std::string& text)
         : stream_pos(pos),
           src_line(line),
           brace_depth(brace_depth),
+          bracket_depth(bracket_depth),
           text(text)
     {}
 
     std::streampos stream_pos;
     int src_line;
     int brace_depth;
+    int bracket_depth;
     std::string text;
 };
 
@@ -31,7 +33,7 @@ class LppLexer
 {
 public:
     LppLexer(std::istream& in)
-        : in(in), src_line(1), brace_depth(0)
+        : in(in), src_line(1), brace_depth(0), bracket_depth(0)
     {}
 
     ~LppLexer()
@@ -50,11 +52,12 @@ public:
         in.seekg(lstate.stream_pos, std::istream::beg);
         src_line = lstate.src_line;
         brace_depth = lstate.brace_depth;
+        bracket_depth = lstate.bracket_depth;
         text = lstate.text;
     }
 
     LexerState getCurrentState() const
-    { return LexerState(in.tellg(), src_line, brace_depth, text); }
+    { return LexerState(in.tellg(), src_line, brace_depth, bracket_depth, text); }
 
     std::string describeToken(Token tk);
 
@@ -67,6 +70,7 @@ private:
     int src_line;
     std::string text;
     int brace_depth;
+    int bracket_depth;
 };
 
 #endif // !defined(__LPP_ANALEX_H__)

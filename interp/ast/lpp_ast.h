@@ -62,7 +62,6 @@ enum class NodeKind {
     CharConstExpr,
     IntConstExpr,
     RealConstExpr,
-    TypedArrayLiteral,
     InferredArrayLiteral,
     BareArrayLiteral,
     LiteralRecordExpr,
@@ -878,23 +877,6 @@ public:
 
 protected:
     NodeUPtr values;
-};
-
-class TypedArrayLiteral : public ArrayInitializer
-{
-public:
-    TypedArrayLiteral(NodeUPtr&& type_def, NodeUPtr&& values)
-        : ArrayInitializer(std::move(values)), type_def(std::move(type_def))
-    {}
-
-    NodeKind getKind() const override
-    { return NodeKind::TypedArrayLiteral; }
-
-    const Node* getType() const
-    { return type_def.get(); }
-
-private:
-    NodeUPtr type_def;
 };
 
 class InferredArrayLiteral : public ArrayInitializer

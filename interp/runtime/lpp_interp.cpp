@@ -53,10 +53,6 @@ static constexpr int BIPROC_COUNT = sizeof(bi_procs)/sizeof(bi_procs[0]);
         case Ast::NodeKind::TNode :  \
             return visit(node->cptr<Ast::TNode>())
 
-#define HANDLE_VARREF_NODE(TNode, node, extra_arg) \
-    case Ast::NodeKind::TNode :  \
-        return visit(node->cptr<Ast::TNode>(), extra_arg)
-
 void LppInterp::loadBuiltinProcs()
 {
     for (int i = 0; i < BIPROC_COUNT; i ++) {
@@ -114,7 +110,6 @@ LppVariant LppInterp::AstVisitor::visit(const Ast::Node *root)
         HANDLE_EXPR_NODE(CharConstExpr, root);
         HANDLE_EXPR_NODE(IntConstExpr, root);
         HANDLE_EXPR_NODE(RealConstExpr, root);
-        HANDLE_EXPR_NODE(TypedArrayLiteral, root);
         HANDLE_EXPR_NODE(InferredArrayLiteral, root);
         HANDLE_EXPR_NODE(BareArrayLiteral, root);
         HANDLE_EXPR_NODE(LiteralRecordExpr, root);
@@ -127,8 +122,10 @@ LppVariant LppInterp::AstVisitor::visit(const Ast::Node *root)
 LppVariant LppInterp::AstVisitor::visit(const Ast::VarRef *expr, LppVariant &parent_val)
 {
     switch (expr->getKind()) {
-        HANDLE_VARREF_NODE(IndexVar, expr, parent_val);
-        HANDLE_VARREF_NODE(SimpleVar, expr, parent_val);
+        case Ast::NodeKind::IndexVar:
+            return visit(expr->cptr<Ast::IndexVar>(), parent_val);
+        case Ast::NodeKind::SimpleVar:
+            return visit(expr->cptr<Ast::SimpleVar>(), parent_val);
         default:
             throw std::runtime_error("Invalid node kind '" + expr->kindName() + "' in VarRef visitor");
     }
@@ -631,6 +628,9 @@ void LppInterp::AstVisitor::visit(const Ast::WriteStmt *stmt)
             term.writeString(val.toBool() ? "Verdadero" : "Falso");
         } else if (val.isString()) {
             term.writeString(val.stringCRef());
+        } else if (val.isArray() || val.isRecord()) {
+            const TypeInfo* ti = expr->cptr<Ast::Expr>()->getTypeInfo();
+            term.writeString(LppSerializer::toString(val, ti));
         } else {
             const TypeInfo* ti = expr->cptr<Ast::Expr>()->getTypeInfo();
             throw LPPException(stmt->getSrcLine(), "No se puede escribir variables de tipo " + ti->kindName());
@@ -946,25 +946,6 @@ static void flattenArray(const LppVariant& v, std::vector<LppVariant>& out) {
     } else {
         out.push_back(v);
     }
-}
-
-LppVariant LppInterp::AstVisitor::visit(const Ast::TypedArrayLiteral *expr)
-{
-    std::vector<LppVariant> elements;
-    for (const auto& val : expr->getValues()) {
-        elements.push_back(visit(val.get()));
-    }
-
-    const ArrayTypeInfo* ati = expr->getTypeInfo()->cptr<ArrayTypeInfo>();
-    size_t total_size = ati->flatSize();
-
-    while (elements.size() < total_size) {
-        const TypeInfo* elem_ti = ati->elemType().get();
-
-        elements.push_back(LppVariant::defaultValue(elem_ti));
-    }
-
-    return LppVariant::makeArray(std::move(elements));
 }
 
 LppVariant LppInterp::AstVisitor::visit(const Ast::InferredArrayLiteral *expr)
