@@ -8,31 +8,30 @@ add_compile_definitions(__LPP_TESTING__)
 
 set(LPP_SRCDIR "${PROJECT_SOURCE_DIR}/../interp")
 
-add_executable(${PROJECT_NAME} ${LPP_SRCDIR}/lpp_parser.cpp
-                               ${LPP_SRCDIR}/lpp_parser.h
-                               ${LPP_SRCDIR}/lpp_lexer.cpp
-                               ${LPP_SRCDIR}/lpp_lexer.h
-                               ${LPP_SRCDIR}/lpp_exception.cpp
-                               ${LPP_SRCDIR}/lpp_exception.h
-                               ${LPP_SRCDIR}/lpp_runtime.cpp
-                               ${LPP_SRCDIR}/lpp_runtime.h
-                               ${LPP_SRCDIR}/lpp_ast.cpp
-                               ${LPP_SRCDIR}/lpp_ast.h
-                               ${LPP_SRCDIR}/lpp_type_info.cpp
-                               ${LPP_SRCDIR}/lpp_type_info.h
-                               ${LPP_SRCDIR}/lpp_proc_info.cpp
-                               ${LPP_SRCDIR}/lpp_proc_info.h
-                               ${LPP_SRCDIR}/lpp_variant.cpp
-                               ${LPP_SRCDIR}/lpp_variant.h
-                               ${LPP_SRCDIR}/lpp_serializer.cpp
-                               ${LPP_SRCDIR}/lpp_serializer.h
-                               ${LPP_SRCDIR}/lpp_sem_analysis.cpp
-                               ${LPP_SRCDIR}/lpp_interp.cpp
-                               ${LPP_SRCDIR}/lpp_interp.h
-                               ${LPP_SRCDIR}/lpp_filemanager.h
-                               ${LPP_SRCDIR}/lpp_symb_table.h
-                               ${LPP_SRCDIR}/lpp_terminal.h
-                               ${LPP_SRCDIR}/str_util.h
+add_executable(${PROJECT_NAME} ${LPP_SRCDIR}/parser/lpp_parser.cpp
+                               ${LPP_SRCDIR}/parser/lpp_parser.h
+                               ${LPP_SRCDIR}/parser/lpp_lexer.cpp
+                               ${LPP_SRCDIR}/parser/lpp_lexer.h
+                               ${LPP_SRCDIR}/runtime/lpp_exception.cpp
+                               ${LPP_SRCDIR}/runtime/lpp_exception.h
+                               ${LPP_SRCDIR}/runtime/lpp_runtime.cpp
+                               ${LPP_SRCDIR}/runtime/lpp_runtime.h
+                               ${LPP_SRCDIR}/ast/lpp_ast.cpp
+                               ${LPP_SRCDIR}/ast/lpp_ast.h
+                               ${LPP_SRCDIR}/semantic/lpp_type_info.cpp
+                               ${LPP_SRCDIR}/semantic/lpp_type_info.h
+                               ${LPP_SRCDIR}/semantic/lpp_proc_info.cpp
+                               ${LPP_SRCDIR}/semantic/lpp_proc_info.h
+                               ${LPP_SRCDIR}/runtime/lpp_variant.cpp
+                               ${LPP_SRCDIR}/runtime/lpp_variant.h
+                               ${LPP_SRCDIR}/io/lpp_serializer.cpp
+                               ${LPP_SRCDIR}/io/lpp_serializer.h
+                               ${LPP_SRCDIR}/semantic/lpp_semantics.cpp
+                               ${LPP_SRCDIR}/runtime/lpp_interp.cpp
+                               ${LPP_SRCDIR}/runtime/lpp_interp.h
+                               ${LPP_SRCDIR}/semantic/lpp_symb_table.h
+                               ${LPP_SRCDIR}/utils/str_util.h
+                               ${LPP_SRCDIR}/project_manager/lpp_project.cpp
                                ${LPP_SRCDIR}/project_manager/lpp_project_parser.cpp
                                ${LPP_SRCDIR}/project_manager/lpp_project_loader.cpp
                                serializer_helper.h
@@ -51,3 +50,10 @@ add_executable(${PROJECT_NAME} ${LPP_SRCDIR}/lpp_parser.cpp
 target_include_directories(${PROJECT_NAME} BEFORE PRIVATE ${PROJECT_SOURCE_DIR})
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/ast)
+target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/parser)
+target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/semantic)
+target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/runtime)
+target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/io)
+target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/utils)
+target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/project_manager)

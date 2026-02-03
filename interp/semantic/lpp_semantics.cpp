@@ -1,15 +1,115 @@
+#include "lpp_semantics.h"
+#include "lpp_exception.h"
 #include <stdexcept>
 #include <unordered_set>
-#include "lpp_ast.h"
-#include "lpp_interp.h"
-#include "lpp_exception.h"
 
 #define HANDLE_NODE(TNode, node) \
         case Ast::NodeKind::TNode :  \
             return visit(node->cptr<Ast::TNode>())
 
-// Semantic analysis
-void LppInterp::SemAnalysisVisitor::visit(const Ast::Node *root)
+class LppSemantics::SemAnalysisVisitor
+{
+    using TIKind = TypeInfo::Kind;
+
+public:
+    SemAnalysisVisitor(SymbolTable<LppVar>& vars, SymbolTable<TypeInfo>& udts,
+               SymbolTable<ProcInfo>& procs)
+        : gbl_vars(vars), udts(udts), procs(procs)
+    {}
+
+    void visit(const Ast::Node *root);
+    void visitProcStmts(const ProcInfo *pi);
+
+private:
+    struct ArrayInitializerListInfo
+    {
+        std::vector<int> dims;
+        TypeInfoSPtr element_type;
+    };
+
+    void visit(const Ast::SubtypeDef *sd);
+    void visit(const Ast::RecordDef *rd);
+    void visit(const Ast::VarDecl *vd);
+    ProcInfo *visit(const Ast::ProcDef *pd);
+
+    TypeInfoSPtr visit(const Ast::Type *tn);
+    TypeInfoSPtr visit(const Ast::IntType *tn);
+    TypeInfoSPtr visit(const Ast::RealType *tn);
+    TypeInfoSPtr visit(const Ast::BoolType *tn);
+    TypeInfoSPtr visit(const Ast::CharType *tn);
+    TypeInfoSPtr visit(const Ast::StringType *tn);
+    TypeInfoSPtr visit(const Ast::ArrayType *tn);
+    TypeInfoSPtr visit(const Ast::UserType *tn);
+    TypeInfoSPtr visit(const Ast::SeqFileType *tn);
+    TypeInfoSPtr visit(const Ast::BinFileType *tn);
+
+    void visit(const Ast::RelExpr *expr);
+    void visit(const Ast::AddExpr *expr);
+    void visit(const Ast::SubExpr *expr);
+    void visit(const Ast::MultExpr *expr);
+    void visit(const Ast::IDivExpr *expr);
+    void visit(const Ast::DivExpr *expr);
+    void visit(const Ast::ModExpr *expr);
+    void visit(const Ast::PowExpr *expr);
+    void visit(const Ast::OrExpr *expr);
+    void visit(const Ast::AndExpr *expr);
+    void visit(const Ast::NotExpr *expr);
+    void visit(const Ast::NegExpr *expr);
+    void visit(const Ast::PlusExpr *expr);
+    void visit(const Ast::FuncCallExpr *expr);
+    void visit(const Ast::LhsExpr *expr);
+    void visit(const Ast::IndexVar *expr);
+    void visit(const Ast::SimpleVar *expr);
+    void visit(const Ast::BoolConstExpr *expr);
+    void visit(const Ast::StrConstExpr *expr);
+    void visit(const Ast::CharConstExpr *expr);
+    void visit(const Ast::IntConstExpr *expr);
+    void visit(const Ast::RealConstExpr *expr);
+    void visit(const Ast::TypedArrayLiteral *expr);
+    void visit(const Ast::InferredArrayLiteral *expr);
+    void visit(const Ast::BareArrayLiteral *expr);
+    ArrayInitializerListInfo visitArrayInitializerList(const Ast::NodeList& init_list);
+    void visit(const Ast::LiteralRecordExpr *expr);
+    void visit(const Ast::FieldAssignExpr *expr);
+    void visit(const Ast::CaseStmt::CondRangeValue* rangev);
+
+    void visit(const Ast::AssignStmt *stmt);
+    void visit(const Ast::IfStmt *stmt);
+    void visit(const Ast::CallStmt *stmt);
+    void visit(const Ast::CaseStmt *stmt);
+    void visit(const Ast::WhileStmt *stmt);
+    void visit(const Ast::RepeatStmt *stmt);
+    void visit(const Ast::ForStmt *stmt);
+    void visit(const Ast::ReadStmt *stmt);
+    void visit(const Ast::WriteStmt *stmt);
+    void visit(const Ast::OpenFileStmt *stmt);
+    void visit(const Ast::ReadFileStmt *stmt);
+    void visit(const Ast::WriteFileStmt *stmt);
+    void visit(const Ast::CloseFileStmt *stmt);
+    void visit(const Ast::ReturnStmt *stmt);
+
+    SymbolTable<LppVar> local_vars;
+    SymbolTable<LppVar>& gbl_vars;
+    SymbolTable<TypeInfo>& udts;
+    SymbolTable<ProcInfo>& procs;
+    const ProcInfo *curr_proc;
+};
+
+LppSemantics::LppSemantics(SymbolTable<LppVar>& vars, SymbolTable<TypeInfo>& udts, SymbolTable<ProcInfo>& procs)
+    : vars(vars), udts(udts), procs(procs)
+{}
+
+void LppSemantics::analyze(const Ast::Node* root) {
+    SemAnalysisVisitor visitor(vars, udts, procs);
+    visitor.visit(root);
+}
+
+void LppSemantics::analyzeProcStmts(const ProcInfo* pi) {
+    SemAnalysisVisitor visitor(vars, udts, procs);
+    visitor.visitProcStmts(pi);
+}
+
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::Node *root)
 {
     switch (root->getKind()) {
         HANDLE_NODE(SubtypeDef, root);
@@ -20,7 +120,6 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::Node *root)
             visit(root->cptr<Ast::ProcDef>());
             return;
 
-        // Statements
         HANDLE_NODE(AssignStmt, root);
         HANDLE_NODE(IfStmt, root);
         HANDLE_NODE(CallStmt, root);
@@ -36,7 +135,6 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::Node *root)
         HANDLE_NODE(CloseFileStmt, root);
         HANDLE_NODE(ReturnStmt, root);
 
-        // Expressions
         HANDLE_NODE(LtExpr, root);
         HANDLE_NODE(GtExpr, root);
         HANDLE_NODE(LteExpr, root);
@@ -78,7 +176,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::Node *root)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::SubtypeDef *sd)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::SubtypeDef *sd)
 {
     if (udts.contains(sd->getName())) {
         throw LPPException(sd->getSrcLine(), "Ya existe un tipo definido con el nombre '" + sd->getName() + "'");
@@ -92,7 +190,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::SubtypeDef *sd)
     udts.add(sd->getName(), ati);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::RecordDef *rd)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::RecordDef *rd)
 {
     if (udts.contains(rd->getName())) {
         throw LPPException(rd->getSrcLine(), "Ya existe un tipo definido con el nombre '" + rd->getName() + "'");
@@ -122,7 +220,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::RecordDef *rd)
     udts.add(rd->getName(), rti);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::VarDecl *vd)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::VarDecl *vd)
 {
     const Ast::StrList& idents = vd->getIdents();
 
@@ -138,13 +236,12 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::VarDecl *vd)
     }
 }
 
-ProcInfo *LppInterp::SemAnalysisVisitor::visit(const Ast::ProcDef *pd)
+ProcInfo *LppSemantics::SemAnalysisVisitor::visit(const Ast::ProcDef *pd)
 {
     if (procs.contains(pd->getName())) {
         throw LPPException(pd->getSrcLine(), "El procedimiento '" + pd->getName() + "' ya fue declarado");
     }
 
-    // Procedure parameters
     std::vector<ProcInfo::Param> params;
     std::unordered_set<std::string> prm_names;
     for (const auto& prmn : pd->getParamDefs()) {
@@ -159,7 +256,6 @@ ProcInfo *LppInterp::SemAnalysisVisitor::visit(const Ast::ProcDef *pd)
         params.emplace_back(prmd.getName(), type, prmd.isByRef());
     }
 
-    // Procedure variables
     std::vector<ProcInfo::Variable> vars;
     std::unordered_set<std::string> var_names;
     for (const auto& varn : pd->getVarDecls()) {
@@ -183,7 +279,6 @@ ProcInfo *LppInterp::SemAnalysisVisitor::visit(const Ast::ProcDef *pd)
     auto pi = std::make_shared<ProcInfo>(pd->getName(), std::move(params), std::move(vars), rt);
     procs.add(pi->name(), pi);
 
-    // Statements
     std::vector<const Ast::Stmt *> stmts;
     for (const auto& s : pd->getStmts()) {
         stmts.push_back(s->cptr<Ast::Stmt>());
@@ -193,7 +288,7 @@ ProcInfo *LppInterp::SemAnalysisVisitor::visit(const Ast::ProcDef *pd)
     return pi.get();
 }
 
-void LppInterp::SemAnalysisVisitor::visitProcStmts(const ProcInfo *pi)
+void LppSemantics::SemAnalysisVisitor::visitProcStmts(const ProcInfo *pi)
 {
     for (const auto& p : pi->params()) {
         local_vars.add(p.name(), std::make_shared<LppVar>(p.name(), p.type()));
@@ -210,7 +305,7 @@ void LppInterp::SemAnalysisVisitor::visitProcStmts(const ProcInfo *pi)
     curr_proc = nullptr;
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::Type *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::Type *tn)
 {
     switch (tn->getKind()) {
         HANDLE_NODE(IntType, tn);
@@ -227,37 +322,37 @@ TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::Type *tn)
     }
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::IntType *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::IntType *tn)
 {
     return TypeInfo::Int;
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::RealType *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::RealType *tn)
 {
     return TypeInfo::Real;
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::BoolType *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::BoolType *tn)
 {
     return TypeInfo::Bool;
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::CharType *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::CharType *tn)
 {
     return TypeInfo::Char;
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::StringType *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::StringType *tn)
 {
     return TypeInfo::String(tn->getSize()? tn->getSize()->getValue() : 0);
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::ArrayType *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::ArrayType *tn)
 {
     return TypeInfo::Array(tn->getDims(), visit(tn->getElemType()->cptr<Ast::Type>()));
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::UserType *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::UserType *tn)
 {
     TypeInfoSPtr udt = udts.get(tn->getTypename());
     if (udt == nullptr) {
@@ -267,12 +362,12 @@ TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::UserType *tn)
     return (udt->is(TIKind::Alias))? udt->cptr<AliasTypeInfo>()->aliasType() : udt;
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::SeqFileType *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::SeqFileType *tn)
 {
     return TypeInfo::TextFile;
 }
 
-TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::BinFileType *tn)
+TypeInfoSPtr LppSemantics::SemAnalysisVisitor::visit(const Ast::BinFileType *tn)
 {
     TypeInfoSPtr elem_type = visit(tn->getElemType<Ast::Type>());
 
@@ -283,7 +378,7 @@ TypeInfoSPtr LppInterp::SemAnalysisVisitor::visit(const Ast::BinFileType *tn)
     return TypeInfo::BinaryFile(elem_type);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::RelExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::RelExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -302,7 +397,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::RelExpr *expr)
     expr->setTypeInfo(TypeInfo::Bool);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::AddExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::AddExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -317,12 +412,12 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::AddExpr *expr)
         expr->setTypeInfo(TypeInfo::Int);
     } else if ((ti1->is(TIKind::Int) && ti2->is(TIKind::Real))
                 || (ti1->is(TIKind::Real) && ti2->is(TIKind::Int))
-                || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real))
+                || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real)) 
                 ) {
         expr->setTypeInfo(TypeInfo::Real);
     } else if ((ti1->is(TIKind::String) && ti2->is(TIKind::String))
                 || (ti1->is(TIKind::Char) && ti2->is(TIKind::String))
-                || (ti1->is(TIKind::String) && ti2->is(TIKind::Char))
+                || (ti1->is(TIKind::String) && ti2->is(TIKind::Char)) 
                 ) {
         expr->setTypeInfo(TypeInfo::String(0));
     } else {
@@ -330,7 +425,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::AddExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::SubExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::SubExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -345,7 +440,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::SubExpr *expr)
         expr->setTypeInfo(TypeInfo::Int);
     } else if ((ti1->is(TIKind::Int) && ti2->is(TIKind::Real))
                 || (ti1->is(TIKind::Real) && ti2->is(TIKind::Int))
-                || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real))
+                || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real)) 
                 ) {
         expr->setTypeInfo(TypeInfo::Real);
     } else {
@@ -353,7 +448,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::SubExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::MultExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::MultExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -368,7 +463,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::MultExpr *expr)
         expr->setTypeInfo(TypeInfo::Int);
     } else if ((ti1->is(TIKind::Int) && ti2->is(TIKind::Real))
                 || (ti1->is(TIKind::Real) && ti2->is(TIKind::Int))
-                || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real))
+                || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real)) 
                 ) {
         expr->setTypeInfo(TypeInfo::Real);
     } else {
@@ -376,7 +471,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::MultExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::IDivExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::IDivExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -389,7 +484,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::IDivExpr *expr)
     if ((ti1->is(TIKind::Int) && ti2->is(TIKind::Int))
         || (ti1->is(TIKind::Int) && ti2->is(TIKind::Real))
         || (ti1->is(TIKind::Real) && ti2->is(TIKind::Int))
-        || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real))
+        || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real)) 
         ) {
         expr->setTypeInfo(TypeInfo::Int);
     } else {
@@ -397,7 +492,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::IDivExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::DivExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::DivExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -410,7 +505,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::DivExpr *expr)
     if ((ti1->is(TIKind::Int) && ti2->is(TIKind::Int))
         || (ti1->is(TIKind::Int) && ti2->is(TIKind::Real))
         || (ti1->is(TIKind::Real) && ti2->is(TIKind::Int))
-        || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real))
+        || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real)) 
         ) {
         return expr->setTypeInfo(TypeInfo::Real);
     } else {
@@ -418,7 +513,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::DivExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::ModExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::ModExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -431,7 +526,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::ModExpr *expr)
     if ((ti1->is(TIKind::Int) && ti2->is(TIKind::Int))
         || (ti1->is(TIKind::Int) && ti2->is(TIKind::Real))
         || (ti1->is(TIKind::Real) && ti2->is(TIKind::Int))
-        || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real))
+        || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real)) 
         ) {
         expr->setTypeInfo(TypeInfo::Int);
     } else {
@@ -439,7 +534,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::ModExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::PowExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::PowExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -454,7 +549,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::PowExpr *expr)
         expr->setTypeInfo(TypeInfo::Int);
     } else if ((ti1->is(TIKind::Int) && ti2->is(TIKind::Real))
                 || (ti1->is(TIKind::Real) && ti2->is(TIKind::Int))
-                || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real))
+                || (ti1->is(TIKind::Real) && ti2->is(TIKind::Real)) 
                 ) {
         expr->setTypeInfo(TypeInfo::Real);
     } else {
@@ -462,7 +557,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::PowExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::OrExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::OrExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -482,7 +577,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::OrExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::AndExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::AndExpr *expr)
 {
     visit(expr->getExpr1());
     visit(expr->getExpr2());
@@ -502,7 +597,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::AndExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::NotExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::NotExpr *expr)
 {
     visit(expr->getExpr());
     const TypeInfo* ti = expr->getExpr<Ast::Expr>()->getTypeInfo();
@@ -516,7 +611,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::NotExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::NegExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::NegExpr *expr)
 {
     visit(expr->getExpr());
     const TypeInfo* ti = expr->getExpr<Ast::Expr>()->getTypeInfo();
@@ -530,7 +625,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::NegExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::PlusExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::PlusExpr *expr)
 {
     visit(expr->getExpr());
     const TypeInfo* ti = expr->getExpr<Ast::Expr>()->getTypeInfo();
@@ -544,7 +639,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::PlusExpr *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::FuncCallExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::FuncCallExpr *expr)
 {
     ProcInfoSPtr fi = procs.get(expr->getName());
 
@@ -553,7 +648,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::FuncCallExpr *expr)
     }
     if (fi->params().size() != expr->getArgs().getSize()) {
         throw LPPException(expr->getSrcLine(), "Cantidad incorrecta de argumentos en llamada a subprograma '" + expr->getName() + "'. "
-                                                "Se esperaban " + std::to_string(fi->params().size()) +
+                                                " Se esperaban " + std::to_string(fi->params().size()) +
                                                 " y se encontraron " + std::to_string(expr->getArgs().getSize()));
     }
 
@@ -567,11 +662,11 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::FuncCallExpr *expr)
 
         if (!params[index].type()->isEquiv(ati)) {
             throw LPPException(expr->getSrcLine(), "Tipo de dato no compatible en llamada a subprograma '" + expr->getName() + "'. "
-                                                   "Argumento en la posicion " + std::to_string(index + 1));
+                                                   " Argumento en la posicion " + std::to_string(index + 1));
         }
         if (params[index].isByref() && !arg_expr->isLValue()) {
             throw LPPException(expr->getSrcLine(), "No se pude pasar una expresion a un parametro por referencia. "
-                                                   "Subprograma '" + expr->getName() + "'. Argumento en la posicion " + std::to_string(index + 1));
+                                                   " Subprograma '" + expr->getName() + "'. Argumento en la posicion " + std::to_string(index + 1));
         }
         index++;
     }
@@ -579,7 +674,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::FuncCallExpr *expr)
     expr->setTypeInfo(fi->retType());
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::LhsExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::LhsExpr *expr)
 {
     auto it = expr->getIndexVars().begin();
     const auto& v = *it;
@@ -605,7 +700,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::LhsExpr *expr)
     expr->setTypeInfo(lti);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::IndexVar *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::IndexVar *expr)
 {
     expr->getVarExpr<Ast::VarRef>()->setRecordTypeInfo(expr->getRecordTypeInfo());
 
@@ -630,7 +725,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::IndexVar *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::SimpleVar *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::SimpleVar *expr)
 {
     if (expr->getRecordTypeInfo()) {
         const RecordTypeInfo* rti = expr->getRecordTypeInfo();
@@ -655,32 +750,32 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::SimpleVar *expr)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::BoolConstExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::BoolConstExpr *expr)
 {
     expr->setTypeInfo(TypeInfo::Bool);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::StrConstExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::StrConstExpr *expr)
 {
     expr->setTypeInfo(TypeInfo::String(0));
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::CharConstExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::CharConstExpr *expr)
 {
     expr->setTypeInfo(TypeInfo::Char);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::IntConstExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::IntConstExpr *expr)
 {
     expr->setTypeInfo(TypeInfo::Int);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::RealConstExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::RealConstExpr *expr)
 {
     expr->setTypeInfo(TypeInfo::Real);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::AssignStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::AssignStmt *stmt)
 {
     visit(stmt->getLhs());
     visit(stmt->getRhs());
@@ -697,7 +792,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::AssignStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::IfStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::IfStmt *stmt)
 {
     for (const auto& blk : stmt->getCondBlocks()) {
         const auto& cblk = blk->cref<Ast::IfStmt::CondBlock>();
@@ -719,13 +814,13 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::IfStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::CallStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::CallStmt *stmt)
 {
     const Ast::Expr* func_call = stmt->getFuncCallExpr()->cptr<Ast::Expr>();
     visit(func_call);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::CaseStmt::CondRangeValue* rangev)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::CaseStmt::CondRangeValue* rangev)
 {
     visit(rangev->getValue1());
     visit(rangev->getValue2());
@@ -738,7 +833,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::CaseStmt::CondRangeValue* r
     rangev->setTypeInfo(rangev->getValue1<Ast::Expr>()->getTypeInfoSPtr());
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::CaseStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::CaseStmt *stmt)
 {
     visit(stmt->getVarExpr());
 
@@ -770,7 +865,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::CaseStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::WhileStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::WhileStmt *stmt)
 {
     visit(stmt->getCond());
 
@@ -783,7 +878,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::WhileStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::RepeatStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::RepeatStmt *stmt)
 {
     visit(stmt->getCond());
 
@@ -796,7 +891,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::RepeatStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::ForStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::ForStmt *stmt)
 {
     visit(stmt->getVar());
     visit(stmt->getExpr1());
@@ -827,7 +922,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::ForStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::ReadStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::ReadStmt *stmt)
 {
     for (const auto& lexpr : stmt->getLValueList()) {
         visit(lexpr.get());
@@ -839,7 +934,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::ReadStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::WriteStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::WriteStmt *stmt)
 {
     for (const auto& expr : stmt->getExprList()) {
         visit(expr.get());
@@ -851,7 +946,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::WriteStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::OpenFileStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::OpenFileStmt *stmt)
 {
     visit(stmt->getFileNameExpr());
     const TypeInfo* fnti = stmt->getFileNameExpr<Ast::Expr>()->getTypeInfo();
@@ -875,7 +970,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::OpenFileStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::ReadFileStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::ReadFileStmt *stmt)
 {
     auto visit_fhvar = [stmt, this](const Ast::NodeUPtr& n_fhvar) {
         visit(n_fhvar.get());
@@ -909,7 +1004,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::ReadFileStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::WriteFileStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::WriteFileStmt *stmt)
 {
     auto visit_fhvar = [stmt, this](const Ast::NodeUPtr& n_fhvar) {
         visit(n_fhvar.get());
@@ -943,7 +1038,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::WriteFileStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::CloseFileStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::CloseFileStmt *stmt)
 {
     visit(stmt->getVarExpr());
     const TypeInfo* vti = stmt->getVarExpr<Ast::Expr>()->getTypeInfo();
@@ -960,7 +1055,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::CloseFileStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::ReturnStmt *stmt)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::ReturnStmt *stmt)
 {
     if (!curr_proc) {
         throw LPPException(stmt->getSrcLine(), "La sentencia 'retorne' solo puede aparecer dentro de una funcion o procedimiento");
@@ -983,10 +1078,10 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::ReturnStmt *stmt)
     }
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::TypedArrayLiteral *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::TypedArrayLiteral *expr)
 {
     TypeInfoSPtr ti = visit(expr->getType()->cptr<Ast::Type>());
-
+    
     if (!ti->is(TIKind::Array)) {
         throw LPPException(expr->getSrcLine(), "El tipo especificado en el arreglo literal debe ser un arreglo");
     }
@@ -1002,31 +1097,31 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::TypedArrayLiteral *expr)
             throw LPPException(expr->getSrcLine(), "El tipo del elemento no coincide con el tipo del arreglo");
         }
     }
-
+    
     size_t total_size = ati->flatSize();
     if (expr->getValues().getSize() > total_size) {
          throw LPPException(expr->getSrcLine(), "Demasiados elementos en el inicializador del arreglo");
     }
-
+    
     expr->setTypeInfo(ti);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::InferredArrayLiteral *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::InferredArrayLiteral *expr)
 {
     auto [dims, elem_type] = visitArrayInitializerList(expr->getValues());
 
     expr->setTypeInfo(TypeInfo::Array(dims, elem_type));
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::BareArrayLiteral *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::BareArrayLiteral *expr)
 {
     auto [dims, elem_type] = visitArrayInitializerList(expr->getValues());
 
     expr->setTypeInfo(TypeInfo::ArrayInitializer(dims, elem_type));
 }
 
-LppInterp::SemAnalysisVisitor::ArrayInitializerListInfo 
-    LppInterp::SemAnalysisVisitor::visitArrayInitializerList(const Ast::NodeList &init_list)
+LppSemantics::SemAnalysisVisitor::ArrayInitializerListInfo 
+    LppSemantics::SemAnalysisVisitor::visitArrayInitializerList(const Ast::NodeList &init_list)
 {
     if (init_list.isEmpty()) {
         throw LPPException(init_list.getSrcLine(), "No se puede inferir el tipo de un arreglo vacio");
@@ -1064,13 +1159,13 @@ LppInterp::SemAnalysisVisitor::ArrayInitializerListInfo
     return result;
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::LiteralRecordExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::LiteralRecordExpr *expr)
 {
     TypeInfoSPtr udt = udts.get(expr->getTypeName());
     if (udt == nullptr) {
         throw LPPException(expr->getSrcLine(), "El tipo '" + expr->getTypeName() + "' no ha sido declarado");
     }
-
+    
     if (udt->is(TIKind::Alias)) {
         udt = udt->cptr<AliasTypeInfo>()->aliasType();
     }
@@ -1081,9 +1176,9 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::LiteralRecordExpr *expr)
 
     const RecordTypeInfo* rti = udt->cptr<RecordTypeInfo>();
     const auto& fields = rti->fields();
-
+    
     std::vector<bool> initialized(fields.size(), false);
-
+    
     int pos_index = 0;
     bool using_named = false;
     bool using_positional = false;
@@ -1091,52 +1186,49 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::LiteralRecordExpr *expr)
     for (const auto& val_node : expr->getValues()) {
         visit(val_node.get());
         const Ast::Expr* val_expr = val_node->cptr<Ast::Expr>();
-
+        
         if (val_node->getKind() == Ast::NodeKind::FieldAssignExpr) {
             using_named = true;
-
             if (using_positional) {
                 throw LPPException(expr->getSrcLine(), "No se puede mezclar inicializacion posicional y nombrada");
             }
-
+            
             const Ast::FieldAssignExpr* fa = val_node->cptr<Ast::FieldAssignExpr>();
             const RecordTypeInfo::FieldInfo* fldi = rti->field(fa->getName());
-
+            
             if (!fldi) {
                 throw LPPException(fa->getSrcLine(), "El campo '" + fa->getName() + "' no existe en el registro '" + rti->name() + "'");
             }
-
+            
             if (initialized[fldi->index()]) {
                 throw LPPException(fa->getSrcLine(), "El campo '" + fa->getName() + "' ya fue inicializado");
             }
-
+            
             if (!fldi->typeInfo()->isEquiv(val_expr->getTypeInfo())) {
                 throw LPPException(fa->getSrcLine(), "El tipo del valor no coincide con el campo '" + fa->getName() + "'");
             }
-
+            
             initialized[fldi->index()] = true;
         } else {
             using_positional = true;
-
             if (using_named) {
                 throw LPPException(expr->getSrcLine(), "No se puede mezclar inicializacion posicional y nombrada");
             }
-
+            
             if (pos_index >= fields.size()) {
                 throw LPPException(expr->getSrcLine(), "Demasiados valores en el inicializador del registro");
             }
-
+            
             const auto& fldi = fields[pos_index];
-
              if (!fldi.typeInfo()->isEquiv(val_expr->getTypeInfo())) {
                 throw LPPException(expr->getSrcLine(), "El tipo del valor no coincide con el campo '" + fldi.name() + "'");
             }
-
+            
             initialized[pos_index] = true;
             pos_index++;
         }
     }
-
+    
     if (using_positional && pos_index < fields.size()) {
         throw LPPException(expr->getSrcLine(), "Faltan valores en la inicializacion posicional del registro");
     }
@@ -1144,7 +1236,7 @@ void LppInterp::SemAnalysisVisitor::visit(const Ast::LiteralRecordExpr *expr)
     expr->setTypeInfo(udt);
 }
 
-void LppInterp::SemAnalysisVisitor::visit(const Ast::FieldAssignExpr *expr)
+void LppSemantics::SemAnalysisVisitor::visit(const Ast::FieldAssignExpr *expr)
 {
     visit(expr->getValue());
     expr->setTypeInfo(expr->getValue()->cptr<Ast::Expr>()->getTypeInfoSPtr());

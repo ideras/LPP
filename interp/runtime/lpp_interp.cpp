@@ -6,6 +6,7 @@
 #include "lpp_interp.h"
 #include "lpp_serializer.h"
 #include "lpp_exception.h"
+#include "lpp_semantics.h"
 #include "project_manager/lpp_project_parser.h"
 #include "project_manager/lpp_project_loader.h"
 
@@ -834,25 +835,27 @@ void LppInterp::semanticAnalysis(const LppProject& project)
     semAnalysisAll(parser_files, project.entryPoint);
 }
 
-void LppInterp::registerGlobals(const std::vector<ParsedFile>& parser_files)
+void LppInterp::registerGlobals(const std::vector<ParsedFile>& asts)
 {
-    LppInterp::SemAnalysisVisitor visitor(var_map, udt_map, proc_map);
+    LppSemantics semantics(var_map, udt_map, proc_map);
     loadBuiltinProcs();
 
-    for (const auto& pfile : parser_files) {
+    for (const auto& pfile : asts) {
         const auto* prg = pfile.ast->cptr<Ast::Program>();
-
+        
         try {
             for (const auto& td : prg->getTypeDefs()) {
-                visitor.visit(td.get());
+                semantics.analyze(td.get());
             }
 
             for (const auto& vd : prg->getVarDecls()) {
-                visitor.visit(vd.get());
+                semantics.analyze(vd.get());
             }
 
             for (const auto& pd : prg->getProcDecls()) {
-                ProcInfo* pi = visitor.visit(pd->cptr<Ast::ProcDef>());
+                const auto* pdef = pd->cptr<Ast::ProcDef>();
+                semantics.analyze(pdef);
+                ProcInfo* pi = proc_map.get(pdef->getName()).get();
                 pi->setOriginFile(pfile.filename);
             }
         } catch (LPPException& e) {
@@ -862,16 +865,16 @@ void LppInterp::registerGlobals(const std::vector<ParsedFile>& parser_files)
     }
 }
 
-void LppInterp::semAnalysisAll(const std::vector<ParsedFile>& parser_files, const std::string& entryPoint)
+void LppInterp::semAnalysisAll(const std::vector<ParsedFile>& asts, const std::string& entryPoint)
 {
-    LppInterp::SemAnalysisVisitor visitor(var_map, udt_map, proc_map);
+    LppSemantics semantics(var_map, udt_map, proc_map);
 
     // Visit all procedure bodies
     for (auto& proc_pair : proc_map.items()) {
         const ProcInfo* pi = proc_pair.second.get();
         if (!pi->isBuiltin()) {
             try {
-                visitor.visitProcStmts(pi);
+                semantics.analyzeProcStmts(pi);
             } catch (LPPException& e) {
                 if (e.getFilename().empty()) e.setFilename(pi->originFile());
                 throw;
@@ -880,17 +883,17 @@ void LppInterp::semAnalysisAll(const std::vector<ParsedFile>& parser_files, cons
     }
 
     // Visit main blocks
-    for (const auto& pfile : parser_files) {
+    for (const auto& pfile : asts) {
         const auto* prg = pfile.ast->cptr<Ast::Program>();
-
+        
         try {
             if (pfile.filename == entryPoint) {
                 for (const auto& stmt : prg->getStmts()) {
-                    visitor.visit(stmt.get());
+                    semantics.analyze(stmt.get());
                 }
             } else {
                 if (!prg->getStmts().isEmpty()) {
-                    throw LPPException(prg->getStmts().items()[0]->getSrcLine(),
+                    throw LPPException(prg->getStmts().items()[0]->getSrcLine(), 
                         "Archivo '" + pfile.filename + "' no es el Principal y contiene sentencias fuera de procedimientos");
                 }
             }
