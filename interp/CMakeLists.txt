@@ -11,6 +11,7 @@ include_directories(${PROJECT_SOURCE_DIR}/ast)
 include_directories(${PROJECT_SOURCE_DIR}/parser)
 include_directories(${PROJECT_SOURCE_DIR}/semantic)
 include_directories(${PROJECT_SOURCE_DIR}/runtime)
+include_directories(${PROJECT_SOURCE_DIR}/runtime/variant)
 include_directories(${PROJECT_SOURCE_DIR}/io)
 include_directories(${PROJECT_SOURCE_DIR}/utils)
 include_directories(${PROJECT_SOURCE_DIR}/project_manager)
@@ -38,8 +39,14 @@ add_executable(${PROJECT_NAME} parser/lpp_parser.cpp
                                semantic/lpp_type_info.h
                                semantic/lpp_proc_info.cpp
                                semantic/lpp_proc_info.h
-                               runtime/lpp_variant.cpp
-                               runtime/lpp_variant.h
+                               runtime/variant/lpp_variant.cpp
+                               runtime/variant/lpp_variant.h
+                               runtime/variant/lpp_object.h
+                               runtime/variant/lpp_string.h
+                               runtime/variant/lpp_array.h
+                               runtime/variant/lpp_array.cpp
+                               runtime/variant/lpp_record.h
+                               runtime/variant/lpp_record.cpp
                                semantic/lpp_semantics.cpp
                                semantic/lpp_semantics.h
                                runtime/lpp_interp.cpp

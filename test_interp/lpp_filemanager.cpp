@@ -165,14 +165,14 @@ LppVariant LppFileManager::textRead(int fh)
     std::iostream *ios = getStream(fh);
 
     if (!ios) {
-        return LppVariant::Empty;
+        return LppVariant();
     }
 
     std::string str;
     std::getline(*ios, str);
 
     if (str.empty()) {
-        return LppVariant::Empty;
+        return LppVariant();
     }
 
     return LppSerializer::fromString(str);

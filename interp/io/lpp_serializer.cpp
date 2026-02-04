@@ -1,14 +1,13 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <functional>
 #include <stdexcept>
 #include "str_util.h"
 #include "lpp_serializer.h"
 
 LppSerializer::LppSerializer()
-{
-
-}
+{}
 
 std::string LppSerializer::toString(const LppVariant& val, const TypeInfo* typei)
 {
@@ -24,14 +23,7 @@ std::string LppSerializer::toString(const LppVariant& val, const TypeInfo* typei
             return oss.str();
         }
 
-        case Kind::Array:
-            if (typei && typei->is(TypeInfo::Kind::Array)) {
-                const ArrayTypeInfo* ati = typei->cptr<ArrayTypeInfo>();
-                if (ati->dims().size() > 1) {
-                    return multiDimArrayToString(val, ati);
-                }
-            }
-            return arrayToString(val);
+        case Kind::Array: return arrayToString(val);
         case Kind::Record: return recordToString(val);
 
         default:
@@ -39,21 +31,23 @@ std::string LppSerializer::toString(const LppVariant& val, const TypeInfo* typei
     }
 }
 
-std::string LppSerializer::arrayToString(const LppVariant& val)
+std::string LppSerializer::arrayToString(const LppVariant &val)
 {
-    bool first = true;
+    const auto& data = val.arrayCRef();
+    const std::vector<int>& dims = val.getArrayDimensions();
+    auto it = data.cbegin();
 
-    std::string str = "[ ";
-    for (const auto& v : val.arrayCRef()) {
-        if (first) {
-            first = false;
-        } else {
-            str += ", ";
+    std::function<std::string(size_t)> format = [&](size_t dim) -> std::string {
+        std::string result = "[ ";
+
+        for (int i = 0; i < dims[dim]; ++i) {
+            if (i > 0) result += ", ";
+            result += (dim == dims.size() - 1) ? toString(*it++) : format(dim + 1);
         }
-        str += toString(v);
-    }
-    str += " ]";
-    return str;
+        return result + " ]";
+    };
+
+    return format(0);
 }
 
 std::string LppSerializer::recordToString(const LppVariant& val)
@@ -180,38 +174,42 @@ bool LppSerializer::fromBinary(LppVariant &val, const TypeInfo *typei, const cha
 
     switch (typei->kind()) {
         case TypeInfo::Kind::Int:
-            static_cast<Lpp::Int&>(val) = *reinterpret_cast<const Lpp::Int *>(p);
+            val.setPointedValue(LppVariant(*reinterpret_cast<const Lpp::Int *>(p)));
             break;
         case TypeInfo::Kind::Real:
-            static_cast<Lpp::Real&>(val) = *reinterpret_cast<const Lpp::Real *>(p);
+            val.setPointedValue(LppVariant(*reinterpret_cast<const Lpp::Real *>(p)));
             break;
         case TypeInfo::Kind::Char:
-            static_cast<Lpp::Char&>(val) = *reinterpret_cast<const Lpp::Char *>(p);
+            val.setPointedValue(LppVariant(*reinterpret_cast<const Lpp::Char *>(p)));
             break;
         case TypeInfo::Kind::Bool:
-            static_cast<Lpp::Bool&>(val) = *reinterpret_cast<const Lpp::Bool *>(p);
+            val.setPointedValue(LppVariant(*reinterpret_cast<const Lpp::Bool *>(p)));
             break;
         case TypeInfo::Kind::String:
-           static_cast<std::string&>(val) = std::string(p, typei->byteSize());
+           val.setPointedValue(LppVariant::fromString(std::string(p, typei->byteSize())));
            break;
         case TypeInfo::Kind::Array: {
-            const TypeInfo* elem_type = typei->cptr<ArrayTypeInfo>()->elemType().get();
-            auto& varray = static_cast<std::vector<LppVariant>&>(val);
+            const auto* ati = typei->cptr<ArrayTypeInfo>();
+            const TypeInfo* elem_type = ati->elemType().get();
+            int flatSize = ati->flatSize();
+            std::vector<LppVariant> varray(flatSize);
 
             for (auto& itm : varray) {
                 fromBinary(itm, elem_type, p);
                 p += elem_type->byteSize();
             }
+            val.setPointedValue(LppVariant::makeArray(std::move(varray), ati->dims()));
             break;
         }
         case TypeInfo::Kind::Record: {
             const RecordTypeInfo* rti = typei->cptr<RecordTypeInfo>();
-            auto& varray = static_cast<std::vector<LppVariant>&>(val);
+            std::vector<LppVariant> varray(rti->fields().size());
 
             for (const auto& fld: rti->fields()) {
                 fromBinary(varray[fld.index()], fld.typeInfo().get(), p);
                 p += fld.typeInfo()->byteSize();
             }
+            val.setPointedValue(LppVariant::makeRecord(std::move(varray)));
             break;
         }
         default:
@@ -230,7 +228,7 @@ LppVariant LppSerializer::Lexer::getValue(LppSerializer::Token tk)
         case Token::Bool: return toBool();
         case Token::String: return toString();
         default:
-            return LppVariant::Empty;
+            return LppVariant();
     }
 }
 
@@ -239,7 +237,7 @@ LppVariant LppSerializer::Lexer::toInt()
     try {
         return std::stoi(text());
     } catch (...) {
-        return LppVariant::Empty;
+        return LppVariant();
     }
 }
 
@@ -248,7 +246,7 @@ LppVariant LppSerializer::Lexer::toReal()
     try {
         return std::stod(text());
     } catch (...) {
-        return LppVariant::Empty;
+        return LppVariant();
     }
 }
 
@@ -273,7 +271,7 @@ LppVariant LppSerializer::Lexer::toString()
 
     iss >> std::quoted(str);
 
-    return str;
+    return LppVariant::fromString(str);
 }
 
 LppSerializer::Token LppSerializer::Lexer::nextToken()
@@ -407,7 +405,7 @@ LppVariant LppSerializer::Parser::parse()
 
     tk = lex.nextToken();
     if (tk != Token::End) {
-        return LppVariant::Empty;
+        return LppVariant();
     }
     return val;
 }
@@ -432,7 +430,7 @@ LppVariant LppSerializer::Parser::parseItem()
             return parseRecord();
 
         default:
-            return LppVariant::Empty;
+            return LppVariant();
     }
 }
 
@@ -458,7 +456,7 @@ LppVariant LppSerializer::Parser::parseArray()
     }
 
     if (!match(Token::CloseBracket)) {
-        return LppVariant::Empty;
+        return LppVariant();
     }
     tk = lex.nextToken();
 
@@ -487,33 +485,9 @@ LppVariant LppSerializer::Parser::parseRecord()
     }
 
     if (!match(Token::CloseCurly)) {
-        return LppVariant::Empty;
+        return LppVariant();
     }
     tk = lex.nextToken();
 
     return LppVariant::makeRecord(std::move(varray));
-}
-
-static void printMultiDim(std::ostringstream& oss, const std::vector<LppVariant>& data, const std::vector<int>& dims, int dimIndex, int& dataIndex)
-{
-    oss << "[ ";
-    int count = dims[dimIndex];
-    for (int i = 0; i < count; ++i) {
-        if (i > 0) oss << ", ";
-
-        if (dimIndex == dims.size() - 1) {
-            oss << LppSerializer::toString(data[dataIndex++]);
-        } else {
-            printMultiDim(oss, data, dims, dimIndex + 1, dataIndex);
-        }
-    }
-    oss << " ]";
-}
-
-std::string LppSerializer::multiDimArrayToString(const LppVariant& val, const ArrayTypeInfo* ati)
-{
-    std::ostringstream oss;
-    int dataIndex = 0;
-    printMultiDim(oss, val.arrayCRef(), ati->dims(), 0, dataIndex);
-    return oss.str();
 }

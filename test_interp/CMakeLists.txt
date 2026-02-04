@@ -22,8 +22,14 @@ add_executable(${PROJECT_NAME} ${LPP_SRCDIR}/parser/lpp_parser.cpp
                                ${LPP_SRCDIR}/semantic/lpp_type_info.h
                                ${LPP_SRCDIR}/semantic/lpp_proc_info.cpp
                                ${LPP_SRCDIR}/semantic/lpp_proc_info.h
-                               ${LPP_SRCDIR}/runtime/lpp_variant.cpp
-                               ${LPP_SRCDIR}/runtime/lpp_variant.h
+                               ${LPP_SRCDIR}/runtime/variant/lpp_variant.cpp
+                               ${LPP_SRCDIR}/runtime/variant/lpp_variant.h
+                               ${LPP_SRCDIR}/runtime/variant/lpp_object.h
+                               ${LPP_SRCDIR}/runtime/variant/lpp_string.h
+                               ${LPP_SRCDIR}/runtime/variant/lpp_array.h
+                               ${LPP_SRCDIR}/runtime/variant/lpp_array.cpp
+                               ${LPP_SRCDIR}/runtime/variant/lpp_record.h
+                               ${LPP_SRCDIR}/runtime/variant/lpp_record.cpp
                                ${LPP_SRCDIR}/io/lpp_serializer.cpp
                                ${LPP_SRCDIR}/io/lpp_serializer.h
                                ${LPP_SRCDIR}/semantic/lpp_semantics.cpp
@@ -54,6 +60,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/ast)
 target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/parser)
 target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/semantic)
 target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/runtime)
+target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/runtime/variant)
 target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/io)
 target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/utils)
 target_include_directories(${PROJECT_NAME} PRIVATE ${LPP_SRCDIR}/project_manager)

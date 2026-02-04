@@ -5,6 +5,7 @@
 #include <string>
 #include <memory>
 #include "lpp_variant.h"
+#include "lpp_type_info.h"
 
 namespace Ast
 {

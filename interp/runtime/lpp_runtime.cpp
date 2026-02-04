@@ -29,7 +29,7 @@ void LppRuntime::init()
 {
     RUNTIME_FUNCTION(nueva_linea) {
         std::cout << '\n';
-        return LppVariant::Empty;
+        return LppVariant();
     };
 
     RUNTIME_FUNCTION(entero_a_cadena) {
@@ -65,7 +65,7 @@ void LppRuntime::init()
         long seed = std::chrono::steady_clock::now().time_since_epoch().count();
         randEng.seed(seed);
 
-        return LppVariant::Empty;
+        return LppVariant();
     };
 
     RUNTIME_FUNCTION(aleatorio) {
@@ -75,7 +75,7 @@ void LppRuntime::init()
     RUNTIME_FUNCTION(limpiar_pantalla) {
         term.clear();
 
-        return LppVariant::Empty;
+        return LppVariant();
     };
 
     RUNTIME_FUNCTION(posicionar_cursor) {
@@ -83,7 +83,7 @@ void LppRuntime::init()
         int row = args[1].toInt() % 25;
 
         term.setCursorPos({row, col});
-        return LppVariant::Empty;
+        return LppVariant();
     };
 
     RUNTIME_FUNCTION(color_fondo) {
@@ -91,7 +91,7 @@ void LppRuntime::init()
         Color color = static_cast<Color>(icolor % 16);
 
         term.setBackColor(color);
-        return LppVariant::Empty;
+        return LppVariant();
     };
 
     RUNTIME_FUNCTION(color_texto) {
@@ -99,7 +99,7 @@ void LppRuntime::init()
         Color color = static_cast<Color>(icolor % 16);
 
         term.setTextColor(color);
-        return LppVariant::Empty;
+        return LppVariant();
     };
 
     RUNTIME_FUNCTION(obtener_caracter) {
@@ -125,7 +125,7 @@ void LppRuntime::init()
         std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     #endif
 
-        return LppVariant::Empty;
+        return LppVariant();
     };
 
     RUNTIME_FUNCTION(fda) {

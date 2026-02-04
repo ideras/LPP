@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "lpp_variant.h"
+#include "lpp_type_info.h"
 
 class LppSerializer
 {
@@ -74,7 +75,6 @@ private:
 private:
     static std::string arrayToString(const LppVariant& val);
     static std::string recordToString(const LppVariant& val);
-    static std::string multiDimArrayToString(const LppVariant& val, const ArrayTypeInfo* ati);
 };
 
 #endif // LPPVARIANTSERIALIZER_H

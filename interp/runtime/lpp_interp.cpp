@@ -47,7 +47,7 @@ static constexpr int BIPROC_COUNT = sizeof(bi_procs)/sizeof(bi_procs[0]);
 #define HANDLE_STMT_NODE(TNode, node) \
         case Ast::NodeKind::TNode :  \
             visit(node->cptr<Ast::TNode>()); \
-            return LppVariant::Empty
+            return LppVariant()
 
 #define HANDLE_EXPR_NODE(TNode, node) \
         case Ast::NodeKind::TNode :  \
@@ -356,7 +356,8 @@ LppVariant LppInterp::AstVisitor::visit(const Ast::LhsExpr *expr)
     auto it = expr->getIndexVars().begin();
     const auto& v = *it;
 
-    LppVariant lval = visit(v->cptr<Ast::VarRef>(), LppVariant::Empty);
+    LppVariant dummy;
+    LppVariant lval = visit(v->cptr<Ast::VarRef>(), dummy);
 
     it++;
     while (it != expr->getIndexVars().end()) {
@@ -627,10 +628,9 @@ void LppInterp::AstVisitor::visit(const Ast::WriteStmt *stmt)
         } else if (val.isBool()) {
             term.writeString(val.toBool() ? "Verdadero" : "Falso");
         } else if (val.isString()) {
-            term.writeString(val.stringCRef());
+            term.writeString(val.stringCRef().c_str());
         } else if (val.isArray() || val.isRecord()) {
-            const TypeInfo* ti = expr->cptr<Ast::Expr>()->getTypeInfo();
-            term.writeString(LppSerializer::toString(val, ti));
+            term.writeString(LppSerializer::toString(val));
         } else {
             const TypeInfo* ti = expr->cptr<Ast::Expr>()->getTypeInfo();
             throw LPPException(stmt->getSrcLine(), "No se puede escribir variables de tipo " + ti->kindName());
@@ -792,7 +792,7 @@ std::vector<LppInterp::AstVisitor::CaseLiteral> LppInterp::AstVisitor::getCaseLi
             case Ast::NodeKind::IntConstExpr:
             case Ast::NodeKind::RealConstExpr:
             case Ast::NodeKind::CharConstExpr:
-                values.emplace_back(getCaseValue(lit->cptr<Ast::Expr>()), LppVariant::Empty);
+                values.emplace_back(getCaseValue(lit->cptr<Ast::Expr>()), LppVariant());
                 break;
             case Ast::NodeKind::CaseStmtCondRangeValue: {
                 const auto& crv = lit->cref<Ast::CaseStmt::CondRangeValue>();
@@ -967,7 +967,7 @@ LppVariant LppInterp::AstVisitor::visit(const Ast::InferredArrayLiteral *expr)
         elements = std::move(flat_elements);
     }
 
-    return LppVariant::makeArray(std::move(elements));
+    return LppVariant::makeArray(std::move(elements), ati->dims());
 }
 
 LppVariant LppInterp::AstVisitor::visit(const Ast::BareArrayLiteral *expr)
@@ -989,7 +989,7 @@ LppVariant LppInterp::AstVisitor::visit(const Ast::BareArrayLiteral *expr)
         elements = std::move(flat_elements);
     }
 
-    return LppVariant::makeArray(std::move(elements));
+    return LppVariant::makeArray(std::move(elements), ati->dims());
 }
 
 LppVariant LppInterp::AstVisitor::visit(const Ast::LiteralRecordExpr *expr)
